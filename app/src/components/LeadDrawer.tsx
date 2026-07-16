@@ -139,21 +139,69 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
           </section>
 
           {/* Analysis */}
-          {analysis && (analysis.reasons.length > 0 || analysis.status !== 'skipped') && (
+          {analysis && (
             <section className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-text-dim">
                 Analysis · {analysis.status}
               </h3>
+
               {analysis.status === 'pending' ? (
-                <p className="text-sm text-text-dim">Queued for the analyzer (Phase 2).</p>
-              ) : analysis.reasons.length > 0 ? (
-                <ul className="list-inside list-disc space-y-1 text-sm">
-                  {analysis.reasons.map((r, i) => (
-                    <li key={i}>{r}</li>
-                  ))}
-                </ul>
+                <p className="text-sm text-text-dim">Queued for the analyzer.</p>
+              ) : analysis.status === 'failed' ? (
+                <p className="text-sm text-danger">
+                  {analysis.reasons[0] ?? 'Analysis failed.'}
+                </p>
               ) : (
-                <p className="text-sm text-text-dim">No findings recorded.</p>
+                <>
+                  {/* Checks breakdown — only meaningful for analyzed real sites */}
+                  {analysis.status === 'done' && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Check label="HTTPS" ok={analysis.checks.https} />
+                      <Check label="Mobile viewport" ok={analysis.checks.viewportMeta} />
+                      <Check label="Responsive" ok={analysis.checks.responsive} />
+                      <Check label="Valid SSL" ok={analysis.checks.sslValid} />
+                      {analysis.checks.pagespeedMobile != null && (
+                        <div className="col-span-2 flex items-center justify-between rounded-md bg-surface-2 px-2 py-1 text-xs">
+                          <span className="text-text-dim">PageSpeed mobile</span>
+                          <span
+                            className={`font-mono ${analysis.checks.pagespeedMobile < 40 ? 'text-danger' : analysis.checks.pagespeedMobile <= 60 ? 'text-warn' : 'text-success'}`}
+                          >
+                            {analysis.checks.pagespeedMobile}/100
+                          </span>
+                        </div>
+                      )}
+                      {analysis.checks.copyrightYear != null && (
+                        <div className="col-span-2 flex items-center justify-between rounded-md bg-surface-2 px-2 py-1 text-xs">
+                          <span className="text-text-dim">Copyright year</span>
+                          <span className="font-mono">{analysis.checks.copyrightYear}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {analysis.checks.techStack.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {analysis.checks.techStack.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded bg-warn/15 px-1.5 py-0.5 text-[11px] text-warn"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {analysis.reasons.length > 0 ? (
+                    <ul className="list-inside list-disc space-y-1 text-sm">
+                      {analysis.reasons.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-text-dim">No issues found — this site is in good shape.</p>
+                  )}
+                </>
               )}
             </section>
           )}
@@ -206,6 +254,15 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
           </section>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function Check({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <div className="flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1 text-xs">
+      <span className={ok ? 'text-success' : 'text-danger'}>{ok ? '✓' : '✕'}</span>
+      <span className="text-text-dim">{label}</span>
     </div>
   );
 }
