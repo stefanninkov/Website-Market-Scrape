@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
+import { ToastProvider } from './components/Toast';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import Sweeps from './pages/Sweeps';
@@ -24,15 +25,17 @@ function Gate() {
   }
 
   return (
-    <Routes>
-      <Route element={<AppShell />}>
-        <Route index element={<Dashboard />} />
-        <Route path="sweeps" element={<Sweeps />} />
-        <Route path="leads" element={<Leads />} />
-        <Route path="pipeline" element={<Pipeline />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
+    <ToastProvider>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route index element={<Dashboard />} />
+          <Route path="sweeps" element={<Sweeps />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </ToastProvider>
   );
 }
 
