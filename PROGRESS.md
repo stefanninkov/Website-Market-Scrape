@@ -26,6 +26,45 @@ Entry template:
 
 ---
 
+## 2026-07-16 — Phase 2: Analyzer + scoring
+
+**Phase:** Phase 2 — Analyzer + scoring
+
+**Done (all 6 tasks, verified running):**
+- **Pure analysis module** in `/shared` (`analysis.ts`): `scoreSite()` (SPEC §6 scoring table, cap 100), `extractCopyrightYear()` (newest plausible year regex), `detectTechStack()` (WordPress, jQuery 1.x, layout tables, Flash, Wix/Weebly/Jimdo free tiers), point constants, and the checks-object builder. Dependency-free so it's unit tested in isolation.
+- **Unit tests** (vitest in `/shared`, 25 tests, all passing): websiteType classifier (incl. the "domain merely contains 'facebook'" trap), copyright-year regex (ranges, phone-number rejection, future-year rejection), tech fingerprints, and every scoring band incl. the 100 cap and the unreachable short-circuit.
+- **PSI client** (`workers/src/lib/pagespeed.ts`): mobile performance score 0-100, returns null on any error/quota/timeout (graceful skip, SPEC §6).
+- **Playwright analyzer** (`workers/src/lib/analyzer.ts`): one shared browser, honest UA, 375px viewport, 20s timeout, 2s spacing between sites. Extracts HTTPS/SSL (via response securityDetails), viewport meta, horizontal overflow, copyright year, tech fingerprints, Last-Modified, parked-domain markers. Email scraping: homepage + /kontakt, /contact, /impressum, /o-nama, mailto + visible addresses, asset-filename filtered, stops at the first hit. Secondary pages gated by a minimal robots.txt parser (`robots.ts`) — homepage always visited, deeper pages respect Disallow (SPEC §11).
+- **analyze handler** (`workers/src/handlers/analyze.ts`, factory over {db, analyzer, psi}): audits the lead's site, adds PSI, runs `scoreSite`, writes `analysis: done` with score/checks/reasons, and fills `email`/`emailSource: site_scrape` only when the lead had no email. On analyzer failure writes `analysis: failed` and fails the job.
+- **Lead drawer analysis section**: checks grid (HTTPS, viewport, responsive, SSL), PageSpeed with color band, copyright year, tech-stack chips, full reasons list; pending/failed states handled.
+- **Weekly cron** (`workers/src/handlers/cron.ts` + `cron.ts`): fires once per ISO week the first time it sees Sunday ≥ 06:00 Europe/Belgrade (CET/CEST via Intl), enqueues a `sweep` job per `schedule=='weekly'` sweep, idempotent via `config/cron.lastWeeklyKey`. isNewBusiness flagging on re-runs was already in the sweep handler; the "New business" badge already exists in the UI.
+
+**Verification (real Chromium + Firestore emulator):**
+- Analyzer vs. local fixture sites — OLD (no viewport, 375px overflow, © 2014, WordPress + jQuery 1.x + layout tables, mailto): score 100, all 8 reasons, email scraped. MODERN (viewport, © 2026, clean): only the fixture's http penalty, email scraped. DOM extraction, tech fingerprinting, copyright regex, overflow, email all correct.
+- analyze handler vs. emulator: lead → `analysis.status done`, score 100, checks + techStack populated, 8 reasons, `email` set with `emailSource site_scrape`, job done.
+- Cron vs. emulator: Sunday 07:00 CEST enqueues 2 weekly sweeps (skips the manual one), second call same week enqueues 0 (idempotent), weekday/Saturday not due.
+- Drawer analysis section rendered against a done-status lead (screenshot): checks grid, PageSpeed 34/100 in red, copyright 2016, tech chips, reasons, site_scrape email.
+
+**Decisions:**
+- Analyzer launches with `ignoreHTTPSErrors: true` so the DOM always loads; SSL validity is judged separately from the response's securityDetails. This separates "insecure cert" from "unreachable".
+- Cron keys on the Belgrade local Sunday date rather than firing at an exact minute — robust to restarts and missed ticks, and DST-correct without a tz dependency.
+- `PLAYWRIGHT_CHROMIUM_PATH` env override added to the analyzer (defaults to Playwright's bundled browser) — documented in `.env.example`; lets a VPS image pin its own Chromium.
+- Tech fingerprint points cap at +20 (two fingerprints) per SPEC even when three+ are detected.
+
+**Deviations from SPEC:**
+- Added `"DOM"` to the workers tsconfig `lib` — type declarations only (for `page.evaluate` browser-context callbacks), no runtime effect on the Node worker.
+
+**New dependencies:**
+- `playwright` (workers) — the analyzer engine, required by SPEC §6. Browsers are not downloaded in CI (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`), pinned via `PLAYWRIGHT_CHROMIUM_PATH` where needed.
+- `vitest` (shared, dev) — the unit-test runner named in PLAN Phase 2.
+
+**Known issues / next up:**
+- SSL "valid" is inferred from a successful secure handshake (securityDetails present); it does not distinguish expired-but-chaining certs. Good enough for the opportunity signal.
+- Live analyzer runs against real sites still want a quick smoke test once the VPS + a real lead exist (fixtures cover the logic; the network path through a residential IP is environment-specific).
+- Next: Phase 3 (AI emails + Gmail) — needs Stefan's Anthropic API key and Gmail OAuth before its generation/send paths can be verified, so that's the natural place to pause for setup.
+
+---
+
 ## 2026-07-16 — Phase 1: Sweeps + Leads (first usable version)
 
 **Phase:** Phase 1 — Sweeps + Leads

@@ -27,12 +27,12 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 2 — Analyzer + scoring
 
-- [ ] analyzer-worker: Playwright audit per SPEC §6 checks, scoring math, reasons[] strings
-- [ ] PSI API integration (free tier, graceful skip on quota errors)
-- [ ] Email scraping (homepage + /kontakt, /contact, /impressum, /o-nama)
-- [ ] Analysis section in lead drawer: score breakdown, checks, reasons
-- [ ] Weekly cron (Sunday 06:00 CET): re-run weekly sweeps, isNewBusiness flagging, "New business" badge in UI
-- [ ] Unit tests (vitest): scoring math, websiteType classifier, copyright-year regex
+- [x] analyzer-worker: Playwright audit per SPEC §6 checks, scoring math, reasons[] strings
+- [x] PSI API integration (free tier, graceful skip on quota errors)
+- [x] Email scraping (homepage + /kontakt, /contact, /impressum, /o-nama)
+- [x] Analysis section in lead drawer: score breakdown, checks, reasons
+- [x] Weekly cron (Sunday 06:00 CET): re-run weekly sweeps, isNewBusiness flagging, "New business" badge in UI
+- [x] Unit tests (vitest): scoring math, websiteType classifier, copyright-year regex
 
 **Milestone: leads ranked by real opportunity score, outdated-site leads surfaced.**
 
