@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+/* DESIGN.md §Part 1 — App UI tokens. No colors outside this palette. */
+@theme {
+  --color-bg: #0b0e14; /* app background */
+  --color-surface: #131722; /* cards, table rows, drawer */
+  --color-surface-2: #1b2130; /* hover, inputs */
+  --color-border: #262d3d;
+  --color-text: #e6eaf2;
+  --color-text-dim: #8b93a7;
+  --color-accent: #c1fe00; /* primary actions, brand lime */
+  --color-accent-ink: #0b0e14; /* text on accent */
+  --color-info: #5aa9ff;
+  --color-warn: #ffb454;
+  --color-danger: #ff5c7a;
+  --color-success: #3ddc97;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace; /* scores, counts, URLs */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* DESIGN.md interaction rules: transitions ≤150ms, none for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
