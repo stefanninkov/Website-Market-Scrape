@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Storage holds preview HTML (previews/), OG images, and curated niche image
+// sets (niche-images/). Previews are served to the public exclusively through
+// the servePreview function (Admin SDK, bypasses rules), so no path needs
+// public client access — owner-only everything.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email == 'stefan.ninkov@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if isOwner();
+    }
+  }
+}

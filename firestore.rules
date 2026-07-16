@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Owner-only everything (SPEC: single user, Google sign-in locked to owner
+// email). Workers and Cloud Functions use the Admin SDK, which bypasses
+// these rules — clients other than Stefan get nothing.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email == 'stefan.ninkov@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    match /{document=**} {
+      allow read, write: if isOwner();
+    }
+  }
+}
