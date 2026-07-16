@@ -1,17 +1,21 @@
 /**
- * sweep-worker — Google Places queries, dedupe, upsert (SPEC §5).
- * Phase 0: skeleton wired to the job queue; real handler lands in Phase 1.
+ * sweep-worker entry — Google Places queries, dedupe, upsert (SPEC §5).
+ * Wires the real Places client into the handler and starts the queue loop.
  */
 
+import 'dotenv/config';
 import { initFirebase } from './lib/firebase.js';
-import { notImplemented, runWorker } from './lib/queue.js';
+import { runWorker } from './lib/queue.js';
+import { createPlacesClient } from './lib/places.js';
+import { makeSweepHandler } from './handlers/sweep.js';
 
 const db = initFirebase();
+const places = createPlacesClient(process.env.GOOGLE_PLACES_API_KEY ?? '');
 
 runWorker(db, {
   name: 'sweep-worker',
   types: ['sweep'],
   handlers: {
-    sweep: notImplemented('Phase 1'),
+    sweep: makeSweepHandler(db, places),
   },
 });
