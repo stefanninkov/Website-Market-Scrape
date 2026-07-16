@@ -1,0 +1,28 @@
+{
+  "name": "workers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev:sweep": "tsx src/sweep.ts",
+    "dev:analyze": "tsx src/analyze.ts",
+    "dev:ai": "tsx src/ai.ts",
+    "dev:preview": "tsx src/preview.ts",
+    "dev:cron": "tsx src/cron.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@wms/shared": "file:../shared",
+    "dotenv": "^16.4.7",
+    "firebase-admin": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,37 @@
+/**
+ * Admin SDK init for workers. Credentials come from the service account JSON
+ * at FIREBASE_SERVICE_ACCOUNT_PATH (workers/.env). Fails fast with a clear
+ * message instead of a cryptic SDK error.
+ */
+
+import { readFileSync } from 'node:fs';
+import { cert, initializeApp, type App } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import 'dotenv/config';
+
+let app: App | null = null;
+
+export function initFirebase(): Firestore {
+  if (!app) {
+    // Local dev against the Firestore emulator needs no service account.
+    if (process.env.FIRESTORE_EMULATOR_HOST) {
+      app = initializeApp({ projectId: process.env.GCLOUD_PROJECT ?? 'demo-wms' });
+      return getFirestore(app);
+    }
+    const path = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    if (!path) {
+      throw new Error(
+        'FIREBASE_SERVICE_ACCOUNT_PATH is not set. Copy workers/.env.example to workers/.env and fill it in.',
+      );
+    }
+    let raw: string;
+    try {
+      raw = readFileSync(path, 'utf8');
+    } catch {
+      throw new Error(`Service account file not found at "${path}" (FIREBASE_SERVICE_ACCOUNT_PATH).`);
+    }
+    const serviceAccount = JSON.parse(raw) as Record<string, string>;
+    app = initializeApp({ credential: cert(serviceAccount) });
+  }
+  return getFirestore(app);
+}
