@@ -5,8 +5,8 @@
  */
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
@@ -25,10 +25,17 @@ let app: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
 let dbInstance: Firestore | null = null;
 
+// Point the SDK at local emulators when VITE_USE_EMULATORS=1 (dev only).
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === '1';
+
 if (isFirebaseConfigured) {
   app = initializeApp(config);
   authInstance = getAuth(app);
   dbInstance = getFirestore(app);
+  if (useEmulators) {
+    connectAuthEmulator(authInstance, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(dbInstance, '127.0.0.1', 8080);
+  }
 }
 
 export function requireAuth(): Auth {
