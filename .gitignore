@@ -1,0 +1,32 @@
+# deps
+node_modules/
+
+# builds
+dist/
+app/dist/
+functions/lib/
+shared/dist/
+workers/dist/
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+*service-account*.json
+!*.example
+
+# firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
+
+# logs
+*.log
+npm-debug.log*

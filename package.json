@@ -1,0 +1,24 @@
+{
+  "name": "website-market-scrape",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal lead generation app for Ninkov FlowDev",
+  "workspaces": [
+    "shared",
+    "app",
+    "functions",
+    "workers"
+  ],
+  "scripts": {
+    "build:shared": "npm run build -w shared",
+    "build:app": "npm run build:shared && npm run build -w app",
+    "build:functions": "npm run build:shared && npm run build -w functions",
+    "build:workers": "npm run build:shared && npm run build -w workers",
+    "build": "npm run build:shared && npm run build -w app && npm run build -w functions && npm run build -w workers",
+    "dev:app": "npm run dev -w app",
+    "typecheck": "npm run build:shared && npm run typecheck -w app && npm run typecheck -w functions && npm run typecheck -w workers"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
