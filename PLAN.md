@@ -4,13 +4,13 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 0 — Scaffolding
 
-- [ ] Monorepo structure per SPEC §12 (app/, functions/, workers/, shared/)
+- [x] Monorepo structure per SPEC §12 (app/, functions/, workers/, shared/)
 - [ ] Firebase project init: Firestore, Auth (Google, locked to owner email via security rules), Hosting, Storage, Functions
-- [ ] firestore.rules + storage.rules: owner-only everything, `previews/` publicly readable via servePreview only
-- [ ] /shared: types.ts from SPEC §4, zod schemas, Firestore helpers, budget.ts guard helpers
-- [ ] Vite app skeleton: Tailwind v4 setup with DESIGN.md tokens, router, auth gate, app shell (sidebar desktop / bottom nav mobile)
-- [ ] Workers skeleton: Firestore job-queue listener loop, pm2 ecosystem config, .env.example
-- [ ] VPS setup notes in README (Node 20, pm2, deploy script)
+- [x] firestore.rules + storage.rules: owner-only everything, `previews/` publicly readable via servePreview only
+- [x] /shared: types.ts from SPEC §4, zod schemas, Firestore helpers, budget.ts guard helpers
+- [x] Vite app skeleton: Tailwind v4 setup with DESIGN.md tokens, router, auth gate, app shell (sidebar desktop / bottom nav mobile)
+- [x] Workers skeleton: Firestore job-queue listener loop, pm2 ecosystem config, .env.example
+- [x] VPS setup notes in README (Node 20, pm2, deploy script)
 
 ## Phase 1 — Sweeps + Leads (first usable version)
 
