@@ -14,14 +14,14 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 1 — Sweeps + Leads (first usable version)
 
-- [ ] Places client with budget guard + strict field masks
-- [ ] sweep-worker: text search per niche, pagination (max 3 pages), dedupe on placeId, Details fetch for new leads, websiteType classification (none/facebook/instagram/real)
-- [ ] enqueueJob callable function + jobs collection statuses
-- [ ] Sweeps page: create/edit sweep (country dropdown, region, niche multi-select from config presets + free text), Run now, last run stats
-- [ ] Leads page: table with filters (country, niche, websiteType, score, stage, isNewBusiness), sort by score, mobile card layout
-- [ ] Lead drawer v1: details, notes, manual stage change, manual email field
-- [ ] Dashboard v1: counters (total leads, no-website count, this week's new)
-- [ ] Budget warning banner at 90%
+- [x] Places client with budget guard + strict field masks
+- [x] sweep-worker: text search per niche, pagination (max 3 pages), dedupe on placeId, Details fetch for new leads, websiteType classification (none/facebook/instagram/real)
+- [x] enqueueJob callable function + jobs collection statuses
+- [x] Sweeps page: create/edit sweep (country dropdown, region, niche multi-select from config presets + free text), Run now, last run stats
+- [x] Leads page: table with filters (country, niche, websiteType, score, stage, isNewBusiness), sort by score, mobile card layout
+- [x] Lead drawer v1: details, notes, manual stage change, manual email field
+- [x] Dashboard v1: counters (total leads, no-website count, this week's new)
+- [x] Budget warning banner at 90%
 
 **Milestone: can sweep a city/niche and get a sorted list of no-website leads. Cold emails can be sent manually from Gmail using this data.**
 
