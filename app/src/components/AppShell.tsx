@@ -8,6 +8,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { useAuth } from '../lib/auth';
+import BudgetBanner from './BudgetBanner';
 
 interface NavItem {
   to: string;
@@ -136,6 +137,7 @@ export default function AppShell() {
 
       {/* Content */}
       <main className="pb-20 md:ml-16 md:pb-0 lg:ml-[220px]">
+        <BudgetBanner />
         <Outlet />
       </main>
 
