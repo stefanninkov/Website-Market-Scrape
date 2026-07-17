@@ -93,6 +93,55 @@ export default function Leads() {
     }
   }
 
+  async function bulkPreviews(): Promise<void> {
+    setBulkBusy(true);
+    try {
+      for (const id of checked) {
+        await enqueueJob('generate_preview', { placeId: id });
+      }
+      toast.show(`Queued ${checked.size} preview${checked.size === 1 ? '' : 's'}.`, 'info');
+      setChecked(new Set());
+    } catch (err) {
+      toast.show(`Bulk previews failed: ${(err as Error).message}`, 'error');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function exportCsv(): void {
+    const rows = filtered.map((l) => ({
+      name: l.name,
+      niche: l.category,
+      country: l.country,
+      region: l.region,
+      address: l.address,
+      phone: l.phone ?? '',
+      email: l.email ?? '',
+      websiteType: l.websiteType,
+      websiteUrl: l.websiteUrl ?? '',
+      score: scoreOf(l),
+      stage: l.stage,
+      rating: l.rating ?? '',
+      reviews: l.reviewCount ?? '',
+      previewUrl: l.preview.url ?? '',
+    }));
+    const headers = Object.keys(rows[0] ?? { name: '' });
+    const esc = (v: string | number): string => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [
+      headers.join(','),
+      ...rows.map((r) => headers.map((h) => esc(r[h as keyof typeof r])).join(',')),
+    ].join('\n');
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   async function bulkStage(stage: LeadStage): Promise<void> {
     if (stage === 'ignored' && !confirm(`Ignore ${checked.size} lead(s)? Ignored is permanent.`)) {
       return;
@@ -139,12 +188,21 @@ export default function Leads() {
           Leads{' '}
           <span className="font-mono text-sm font-normal text-text-dim">({filtered.length})</span>
         </h1>
-        <button
-          onClick={() => setShowFilters((v) => !v)}
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-dim md:hidden"
-        >
-          Filters
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCsv}
+            disabled={filtered.length === 0}
+            className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-dim hover:text-text disabled:opacity-50"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-dim md:hidden"
+          >
+            Filters
+          </button>
+        </div>
       </div>
 
       <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
@@ -166,6 +224,13 @@ export default function Leads() {
             onClick={() => void bulkGenerate()}
           >
             Generate drafts
+          </Button>
+          <Button
+            className="px-2 py-1.5 text-xs"
+            disabled={bulkBusy}
+            onClick={() => void bulkPreviews()}
+          >
+            Generate previews
           </Button>
           <select
             className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-xs text-text"
