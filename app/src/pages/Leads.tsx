@@ -9,13 +9,16 @@
  */
 
 import { useMemo, useState } from 'react';
-import { limit, orderBy, query } from 'firebase/firestore';
+import { limit, orderBy, query, updateDoc } from 'firebase/firestore';
 import type { LeadStage, WebsiteType } from '@wms/shared';
-import { leadsCol, type LeadWithId } from '../lib/db';
+import { leadDoc, leadsCol, type LeadWithId } from '../lib/db';
 import { useQuery } from '../lib/hooks';
+import { enqueueJob } from '../lib/functions';
 import { EUROPEAN_COUNTRIES, countryName } from '../lib/countries';
 import LeadDrawer from '../components/LeadDrawer';
+import { useToast } from '../components/Toast';
 import {
+  Button,
   EmptyState,
   NewBusinessBadge,
   ScoreBadge,
@@ -57,9 +60,56 @@ export default function Leads() {
   );
   const { data: leads, loading, error } = useQuery(q);
 
+  const toast = useToast();
   const [filters, setFilters] = useState<Filters>(BLANK_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  function toggleChecked(id: string): void {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkGenerate(): Promise<void> {
+    setBulkBusy(true);
+    try {
+      // Sequential enqueue; the single ai-worker also processes one at a time,
+      // which is what "sequential to respect budget" (SPEC §7) needs.
+      for (const id of checked) {
+        await enqueueJob('generate_email', { placeId: id });
+      }
+      toast.show(`Queued ${checked.size} draft${checked.size === 1 ? '' : 's'}.`, 'info');
+      setChecked(new Set());
+    } catch (err) {
+      toast.show(`Bulk generate failed: ${(err as Error).message}`, 'error');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function bulkStage(stage: LeadStage): Promise<void> {
+    if (stage === 'ignored' && !confirm(`Ignore ${checked.size} lead(s)? Ignored is permanent.`)) {
+      return;
+    }
+    setBulkBusy(true);
+    try {
+      for (const id of checked) {
+        await updateDoc(leadDoc(id), { stage });
+      }
+      toast.show(`Moved ${checked.size} lead(s) to ${STAGE_LABEL[stage]}.`, 'success');
+      setChecked(new Set());
+    } catch (err) {
+      toast.show(`Bulk update failed: ${(err as Error).message}`, 'error');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     return leads.filter((l) => {
@@ -106,6 +156,49 @@ export default function Leads() {
         />
       </div>
 
+      {checked.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent/40 bg-surface p-2 pl-3">
+          <span className="font-mono text-sm text-accent">{checked.size} selected</span>
+          <Button
+            variant="primary"
+            className="px-2 py-1.5 text-xs"
+            disabled={bulkBusy}
+            onClick={() => void bulkGenerate()}
+          >
+            Generate drafts
+          </Button>
+          <select
+            className="rounded-lg border border-border bg-surface-2 px-2 py-1.5 text-xs text-text"
+            value=""
+            disabled={bulkBusy}
+            onChange={(e) => {
+              if (e.target.value) void bulkStage(e.target.value as LeadStage);
+            }}
+          >
+            <option value="">Move to stage…</option>
+            {STAGES.filter((s) => s !== 'ignored').map((s) => (
+              <option key={s} value={s}>
+                {STAGE_LABEL[s]}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="danger"
+            className="px-2 py-1.5 text-xs"
+            disabled={bulkBusy}
+            onClick={() => void bulkStage('ignored')}
+          >
+            Ignore
+          </Button>
+          <button
+            onClick={() => setChecked(new Set())}
+            className="ml-auto px-2 text-xs text-text-dim hover:text-text"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <p className="font-mono text-sm text-text-dim">loading…</p>
       ) : error ? (
@@ -119,6 +212,16 @@ export default function Leads() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface text-left text-xs text-text-dim">
+                  <th className="w-8 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="accent-accent"
+                      checked={filtered.length > 0 && checked.size === filtered.length}
+                      onChange={(e) =>
+                        setChecked(e.target.checked ? new Set(filtered.map((l) => l.id)) : new Set())
+                      }
+                    />
+                  </th>
                   <th className="px-3 py-2 font-medium">Score</th>
                   <th className="px-3 py-2 font-medium">Name</th>
                   <th className="px-3 py-2 font-medium">Niche</th>
@@ -134,6 +237,14 @@ export default function Leads() {
                     onClick={() => setSelected(l.id)}
                     className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-2"
                   >
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="accent-accent"
+                        checked={checked.has(l.id)}
+                        onChange={() => toggleChecked(l.id)}
+                      />
+                    </td>
                     <td className="px-3 py-2">
                       <ScoreBadge score={scoreOf(l)} />
                     </td>
