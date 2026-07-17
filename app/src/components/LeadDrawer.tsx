@@ -4,10 +4,12 @@
  * (480px), full-screen sheet from the bottom on mobile (DESIGN.md §Layout).
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { updateDoc } from 'firebase/firestore';
-import type { LeadStage } from '@wms/shared';
-import { leadDoc, type LeadWithId } from '../lib/db';
+import type { AppEvent, LeadStage } from '@wms/shared';
+import { leadDoc, leadEventsQuery, type LeadWithId } from '../lib/db';
+import { useQuery } from '../lib/hooks';
+import { enqueueJob, sendEmail } from '../lib/functions';
 import { formatRelative } from '../lib/format';
 import { useToast } from './Toast';
 import {
@@ -241,6 +243,9 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
             </div>
           </section>
 
+          {/* Outreach: generate → edit → send */}
+          <OutreachSection lead={lead} />
+
           {/* Notes */}
           <section className="space-y-2">
             <label className={labelClass}>Notes</label>
@@ -252,9 +257,162 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
               placeholder="Private notes…"
             />
           </section>
+
+          {/* Event timeline */}
+          <EventTimeline leadId={lead.id} />
         </div>
       </aside>
     </div>
+  );
+}
+
+function OutreachSection({ lead }: { lead: LeadWithId }) {
+  const toast = useToast();
+  const draft = lead.outreach.draft;
+  const [subject, setSubject] = useState(draft?.subject ?? '');
+  const [body, setBody] = useState(draft?.body ?? '');
+  const [steering, setSteering] = useState('');
+  const [busy, setBusy] = useState<'generate' | 'send' | null>(null);
+
+  // Sync editor when a freshly generated draft arrives.
+  useEffect(() => {
+    setSubject(draft?.subject ?? '');
+    setBody(draft?.body ?? '');
+  }, [draft?.subject, draft?.body]);
+
+  async function generate(): Promise<void> {
+    setBusy('generate');
+    try {
+      await enqueueJob('generate_email', {
+        placeId: lead.id,
+        ...(steering.trim() ? { steering: steering.trim() } : {}),
+      });
+      toast.show('Generating draft…', 'info');
+    } catch (err) {
+      toast.show(`Could not queue generation: ${(err as Error).message}`, 'error');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveEdits(): Promise<void> {
+    if (!draft) return;
+    if (subject === draft.subject && body === draft.body) return;
+    try {
+      await updateDoc(leadDoc(lead.id), {
+        'outreach.draft.subject': subject,
+        'outreach.draft.body': body,
+      });
+    } catch (err) {
+      toast.show(`Save failed: ${(err as Error).message}`, 'error');
+    }
+  }
+
+  async function send(): Promise<void> {
+    if (!lead.email) {
+      toast.show('Add an email address first.', 'error');
+      return;
+    }
+    if (!confirm(`Send this email to ${lead.email}?`)) return;
+    setBusy('send');
+    try {
+      await saveEdits();
+      const result = await sendEmail(lead.id);
+      if (result.sentToday > result.softLimit) {
+        toast.show(
+          `Email sent — but that's ${result.sentToday} today (soft limit ${result.softLimit}). Consider slowing down.`,
+          'error',
+        );
+      } else {
+        toast.show('Email sent.', 'success');
+      }
+    } catch (err) {
+      toast.show(`Send failed: ${(err as Error).message}`, 'error');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const sent = lead.outreach.lastSentAt;
+
+  return (
+    <section className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-dim">Cold email</h3>
+        {sent && (
+          <span className="text-[11px] text-text-dim">
+            sent {formatRelative(sent)} · {lead.outreach.opens} opens
+            {lead.outreach.replied ? ' · replied' : ''}
+          </span>
+        )}
+      </div>
+
+      <input
+        className={inputClass}
+        value={steering}
+        onChange={(e) => setSteering(e.target.value)}
+        placeholder="Optional steering: e.g. mention their Facebook page, more casual…"
+      />
+      <Button onClick={() => void generate()} disabled={busy !== null} className="w-full">
+        {busy === 'generate' ? 'Queuing…' : draft ? 'Regenerate draft' : 'Generate email'}
+      </Button>
+
+      {draft && (
+        <div className="space-y-2 pt-1">
+          <input
+            className={inputClass}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            onBlur={() => void saveEdits()}
+            placeholder="Subject"
+          />
+          <textarea
+            className={`${inputClass} min-h-40 resize-y`}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onBlur={() => void saveEdits()}
+            placeholder="Body"
+          />
+          <Button
+            variant="primary"
+            onClick={() => void send()}
+            disabled={busy !== null}
+            className="w-full"
+          >
+            {busy === 'send' ? 'Sending…' : 'Send via Gmail'}
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+const EVENT_LABEL: Record<AppEvent['type'], string> = {
+  sent: 'Email sent',
+  open: 'Email opened',
+  reply: 'Reply received',
+  bounce: 'Bounced',
+  preview_view: 'Preview viewed',
+};
+
+function EventTimeline({ leadId }: { leadId: string }) {
+  const q = useMemo(() => leadEventsQuery(leadId), [leadId]);
+  const { data: events } = useQuery(q);
+
+  if (events.length === 0) return null;
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-text-dim">Activity</h3>
+      <ul className="space-y-1">
+        {events.map((e) => (
+          <li key={e.id} className="flex items-center justify-between text-xs">
+            <span>{EVENT_LABEL[e.type]}</span>
+            <span className="text-text-dim">{formatRelative(e.at)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

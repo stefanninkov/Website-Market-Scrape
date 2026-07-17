@@ -25,3 +25,17 @@ export async function enqueueJob(type: JobType, payload: EnqueuePayload): Promis
   const result = await callable({ type, payload });
   return result.data.jobId;
 }
+
+export interface SendEmailResult {
+  threadId: string;
+  sentToday: number;
+  softLimit: number;
+}
+
+/** Send the lead's current draft via Gmail (backend injects the tracking pixel). */
+export async function sendEmail(placeId: string): Promise<SendEmailResult> {
+  const functions = getFunctions(requireAuth().app, REGION);
+  const callable = httpsCallable<{ placeId: string }, SendEmailResult>(functions, 'sendEmail');
+  const result = await callable({ placeId });
+  return result.data;
+}
