@@ -7,19 +7,28 @@
 import {
   collection,
   doc,
+  query,
+  where,
+  orderBy,
+  limit,
   type CollectionReference,
   type DocumentReference,
   type FirestoreDataConverter,
+  type Query,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import {
   COLLECTIONS,
   CONFIG_DOCS,
   type ApiBudget,
+  type AppEvent,
+  type GmailConfig,
+  type Identity,
   type Job,
   type Lead,
   type NichesConfig,
   type Sweep,
+  type ToneGuide,
 } from '@wms/shared';
 import { requireDb } from './firebase';
 
@@ -55,3 +64,21 @@ export const apiBudgetDoc = (): DocumentReference<ApiBudget> =>
 
 export const nichesDoc = (): DocumentReference<NichesConfig> =>
   doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.niches).withConverter(converter<NichesConfig>());
+
+export const identityDoc = (): DocumentReference<Identity> =>
+  doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.identity).withConverter(converter<Identity>());
+
+export const toneGuideDoc = (): DocumentReference<ToneGuide> =>
+  doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.toneGuide).withConverter(converter<ToneGuide>());
+
+export const gmailDoc = (): DocumentReference<GmailConfig> =>
+  doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.gmail).withConverter(converter<GmailConfig>());
+
+/** Recent events for one lead, newest first (drawer timeline). */
+export const leadEventsQuery = (leadId: string): Query<AppEvent> =>
+  query(
+    collection(requireDb(), COLLECTIONS.events).withConverter(converter<AppEvent>()),
+    where('leadId', '==', leadId),
+    orderBy('at', 'desc'),
+    limit(50),
+  );
