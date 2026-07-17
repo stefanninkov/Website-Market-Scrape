@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { updateDoc } from 'firebase/firestore';
-import type { AppEvent, LeadStage } from '@wms/shared';
+import { templateForNiche, type AppEvent, type LeadStage, type TemplateId } from '@wms/shared';
 import { leadDoc, leadEventsQuery, type LeadWithId } from '../lib/db';
 import { useQuery } from '../lib/hooks';
 import { enqueueJob, sendEmail } from '../lib/functions';
@@ -243,6 +243,9 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
             </div>
           </section>
 
+          {/* Preview site */}
+          <PreviewSection lead={lead} />
+
           {/* Outreach: generate → edit → send */}
           <OutreachSection lead={lead} />
 
@@ -263,6 +266,89 @@ export default function LeadDrawer({ lead, onClose }: { lead: LeadWithId; onClos
         </div>
       </aside>
     </div>
+  );
+}
+
+const TEMPLATE_IDS: TemplateId[] = ['minimal-light', 'bold-dark', 'warm-local', 'corporate-clean'];
+
+function PreviewSection({ lead }: { lead: LeadWithId }) {
+  const toast = useToast();
+  const preview = lead.preview;
+  const [template, setTemplate] = useState<TemplateId | ''>('');
+  const [busy, setBusy] = useState(false);
+
+  const autoTemplate = templateForNiche(lead.category);
+  const effective = template || preview.templateId || autoTemplate;
+
+  async function generate(): Promise<void> {
+    setBusy(true);
+    try {
+      await enqueueJob('generate_preview', {
+        placeId: lead.id,
+        templateId: effective,
+      });
+      toast.show(preview.status === 'ready' ? 'Regenerating preview…' : 'Generating preview…', 'info');
+    } catch (err) {
+      toast.show(`Could not queue preview: ${(err as Error).message}`, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-dim">
+          Preview site · {preview.status}
+        </h3>
+        {preview.status === 'ready' && (
+          <span className="text-[11px] text-text-dim">
+            {preview.views} view{preview.views === 1 ? '' : 's'}
+            {preview.lastViewAt ? ` · last ${formatRelative(preview.lastViewAt)}` : ''}
+          </span>
+        )}
+      </div>
+
+      {preview.status === 'ready' && preview.url && (
+        <a
+          href={preview.url}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate rounded-lg bg-surface-2 px-3 py-2 font-mono text-xs text-info"
+        >
+          {preview.url}
+        </a>
+      )}
+      {preview.status === 'failed' && (
+        <p className="text-sm text-danger">Preview generation failed — try again.</p>
+      )}
+      {preview.status === 'generating' && (
+        <p className="text-sm text-text-dim">Generating…</p>
+      )}
+
+      <div className="flex gap-2">
+        <select
+          className={inputClass}
+          value={effective}
+          onChange={(e) => setTemplate(e.target.value as TemplateId)}
+        >
+          {TEMPLATE_IDS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+              {t === autoTemplate ? ' (auto)' : ''}
+            </option>
+          ))}
+        </select>
+        <Button
+          variant="primary"
+          onClick={() => void generate()}
+          disabled={busy || preview.status === 'generating'}
+          className="shrink-0"
+        >
+          {preview.status === 'ready' ? 'Regenerate' : 'Generate'}
+        </Button>
+      </div>
+    </section>
   );
 }
 

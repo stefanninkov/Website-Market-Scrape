@@ -74,11 +74,9 @@ export const toneGuideDoc = (): DocumentReference<ToneGuide> =>
 export const gmailDoc = (): DocumentReference<GmailConfig> =>
   doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.gmail).withConverter(converter<GmailConfig>());
 
+export const eventsCol = (): CollectionReference<AppEvent> =>
+  collection(requireDb(), COLLECTIONS.events).withConverter(converter<AppEvent>());
+
 /** Recent events for one lead, newest first (drawer timeline). */
 export const leadEventsQuery = (leadId: string): Query<AppEvent> =>
-  query(
-    collection(requireDb(), COLLECTIONS.events).withConverter(converter<AppEvent>()),
-    where('leadId', '==', leadId),
-    orderBy('at', 'desc'),
-    limit(50),
-  );
+  query(eventsCol(), where('leadId', '==', leadId), orderBy('at', 'desc'), limit(50));

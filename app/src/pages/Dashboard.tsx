@@ -14,7 +14,7 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
-import { leadsCol } from '../lib/db';
+import { eventsCol, leadsCol } from '../lib/db';
 import { useQuery } from '../lib/hooks';
 import { formatRelative, startOfWeek } from '../lib/format';
 import { EmptyState, ScoreBadge, StageChip } from '../components/ui';
@@ -25,6 +25,7 @@ interface Counts {
   newThisWeek: number;
   contacted: number;
   replied: number;
+  previewViews: number;
 }
 
 export default function Dashboard() {
@@ -35,12 +36,13 @@ export default function Dashboard() {
     setError(null);
     try {
       const col = leadsCol();
-      const [total, noWebsite, newThisWeek, contacted, replied] = await Promise.all([
+      const [total, noWebsite, newThisWeek, contacted, replied, previewViews] = await Promise.all([
         getCountFromServer(col),
         getCountFromServer(query(col, where('websiteType', 'in', ['none', 'facebook', 'instagram']))),
         getCountFromServer(query(col, where('firstSeenAt', '>=', Timestamp.fromDate(startOfWeek())))),
         getCountFromServer(query(col, where('outreach.lastSentAt', '!=', null))),
         getCountFromServer(query(col, where('outreach.replied', '==', true))),
+        getCountFromServer(query(eventsCol(), where('type', '==', 'preview_view'))),
       ]);
       setCounts({
         total: total.data().count,
@@ -48,6 +50,7 @@ export default function Dashboard() {
         newThisWeek: newThisWeek.data().count,
         contacted: contacted.data().count,
         replied: replied.data().count,
+        previewViews: previewViews.data().count,
       });
     } catch (err) {
       setError((err as Error).message);
@@ -92,12 +95,13 @@ export default function Dashboard() {
       {error ? (
         <p className="text-sm text-danger">Failed to load counters: {error}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Counter label="Total leads" value={counts?.total} />
           <Counter label="No real website" value={counts?.noWebsite} accent />
           <Counter label="New this week" value={counts?.newThisWeek} />
           <Counter label="Due follow-ups" value={due.length} warn={due.length > 0} />
           <Counter label="Reply rate" value={replyRate} />
+          <Counter label="Preview views" value={counts?.previewViews} />
         </div>
       )}
 
