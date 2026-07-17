@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{{businessName}} — {{headline}}</title>
+<meta name="description" content="{{metaDescription}}"/>
+<meta name="robots" content="noindex"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="{{businessName}} — {{headline}}"/>
+<meta property="og:description" content="{{metaDescription}}"/>
+<meta property="og:image" content="{{ogImage}}"/>
+<meta property="og:url" content="{{pageUrl}}"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="{{businessName}} — {{headline}}"/>
+<meta name="twitter:description" content="{{metaDescription}}"/>
+<meta name="twitter:image" content="{{ogImage}}"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&display=swap"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--accent:{{accent}};--bg:#0A0A0B;--text:#F5F5F4;--dim:#9A9A96}
+body{font-family:'Archivo',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+.hero{position:relative;min-height:78vh;display:flex;align-items:flex-end;background:{{heroBackground}};background-size:cover;background-position:center}
+.hero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,11,.25) 0%,rgba(10,10,11,.92) 82%)}
+.hero .wrap{position:relative;z-index:1;padding-bottom:72px;padding-top:120px}
+.hero h1{font-size:clamp(2.4rem,7vw,4.6rem);font-weight:900;text-transform:uppercase;letter-spacing:-.01em;line-height:1.02;max-width:18ch}
+.hero .k{color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.2em;font-size:.8rem}
+.hero p{margin-top:16px;color:#D8D8D4;font-size:1.1rem;max-width:52ch}
+.cta{display:inline-block;margin-top:30px;background:var(--accent);color:#0A0A0B;text-decoration:none;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:15px 30px;border-radius:8px;font-size:.95rem}
+.diag{height:64px;background:var(--bg);clip-path:polygon(0 100%,100% 0,100% 100%);margin-top:-64px;position:relative;z-index:2}
+section{padding:72px 0}
+.sec-title{font-size:.8rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+.svc{border:1px solid #232326;border-radius:12px;padding:24px;transition:transform .15s ease}
+.svc .num{font-size:2rem;font-weight:900;color:var(--accent);opacity:.85}
+.svc h3{margin:12px 0 6px;font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.svc p{color:var(--dim);font-size:.93rem}
+@media(hover:hover){.svc:hover{transform:translateY(-4px)}}
+.about p{margin-top:26px;color:#CFCFCB;font-size:1.05rem;max-width:64ch}
+.rating{margin-top:28px;display:inline-block;border:1px solid #232326;border-radius:12px;padding:18px 22px}
+.rating .stars{color:var(--accent);letter-spacing:3px}
+.rating p{margin-top:4px;color:var(--dim);font-size:.88rem}
+.contact{border-top:1px solid #1B1B1E}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px}
+.contact-grid a{color:var(--accent);font-weight:700;font-size:1.3rem;text-decoration:none}
+.contact-grid .lbl{color:var(--dim);font-size:.75rem;text-transform:uppercase;letter-spacing:.16em;display:block;margin-bottom:8px}
+footer{padding:40px 0 100px;border-top:1px solid #1B1B1E;color:var(--dim);font-size:.85rem}
+.brandbar{position:fixed;left:0;right:0;bottom:0;background:#141416;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;padding:10px 44px 10px 16px;font-size:.85rem;z-index:50;border-top:1px solid #232326}
+.brandbar a{background:#C1FE00;color:#0A0A0B;text-decoration:none;font-weight:700;padding:6px 14px;border-radius:6px;font-size:.8rem}
+.brandbar button{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:#9A9A96;font-size:1rem;cursor:pointer;padding:6px}
+@media(max-width:720px){.services{grid-template-columns:1fr}.contact-grid{grid-template-columns:1fr}.hero{min-height:64vh}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+<span class="k">{{businessName}}</span>
+<h1>{{headline}}</h1>
+<p>{{subheadline}}</p>
+<a class="cta" href="{{phoneHref}}">{{ctaLabel}}</a>
+</div></header>
+<div class="diag"></div>
+
+<section><div class="wrap">
+<span class="sec-title">{{servicesLabel}}</span>
+<div class="services">{{servicesHtml}}</div>
+</div></section>
+
+<section class="about"><div class="wrap">
+<span class="sec-title">{{aboutLabel}}</span>
+<p>{{about}}</p>
+{{ratingBlock}}
+</div></section>
+
+<section class="contact"><div class="wrap">
+<span class="sec-title">{{contactLabel}}</span>
+<div class="contact-grid">
+<div><span class="lbl">{{phoneLabel}}</span><a href="{{phoneHref}}">{{phone}}</a></div>
+<div><span class="lbl">{{addressLabel}}</span><p>{{address}}</p></div>
+</div>
+</div></section>
+
+<footer><div class="wrap"><p>© {{year}} {{businessName}}</p><p style="margin-top:6px">{{disclaimer}}</p></div></footer>
+
+<div class="brandbar" id="bb"><span>Concept by FlowDev</span><a href="{{calLink}}">Book a call</a><button aria-label="Close" onclick="sessionStorage.setItem('bb','1');document.getElementById('bb').style.display='none'">✕</button></div>
+<script>if(sessionStorage.getItem('bb')){document.getElementById('bb').style.display='none'}</script>
+</body>
+</html>

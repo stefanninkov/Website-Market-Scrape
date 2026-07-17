@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{{businessName}} — {{headline}}</title>
+<meta name="description" content="{{metaDescription}}"/>
+<meta name="robots" content="noindex"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="{{businessName}} — {{headline}}"/>
+<meta property="og:description" content="{{metaDescription}}"/>
+<meta property="og:image" content="{{ogImage}}"/>
+<meta property="og:url" content="{{pageUrl}}"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="{{businessName}} — {{headline}}"/>
+<meta name="twitter:description" content="{{metaDescription}}"/>
+<meta name="twitter:image" content="{{ogImage}}"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ink:#101318;--accent:#2D5BFF;--dim:#5B6472}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#FFFFFF;color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+.hero{position:relative;padding:96px 0 72px;background-image:radial-gradient(#E4E7EE 1px,transparent 1px);background-size:22px 22px}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);line-height:1.05;font-weight:800;letter-spacing:-.02em;max-width:16ch}
+.hero p{margin-top:20px;font-size:1.125rem;color:var(--dim);max-width:52ch}
+.kicker{display:inline-block;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.cta{display:inline-block;margin-top:32px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:8px;font-size:1rem}
+.cta:hover{opacity:.92}
+.label{font-size:.72rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+section{padding:64px 0;border-top:1px solid #ECEEF2}
+.services{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin-top:36px}
+.svc .num{font-size:.8rem;font-weight:600;color:var(--accent)}
+.svc h3{margin:8px 0 6px;font-size:1.05rem;font-weight:600}
+.svc p{color:var(--dim);font-size:.95rem}
+.about-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;margin-top:36px;align-items:start}
+.about-grid>p{color:#333A45;font-size:1.02rem}
+.rating{border:1px solid #ECEEF2;border-radius:12px;padding:20px}
+.rating .stars{color:#F5A623;font-size:1.1rem;letter-spacing:2px}
+.rating p{margin-top:6px;color:var(--dim);font-size:.9rem}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:36px}
+.contact-grid a{color:var(--accent);text-decoration:none;font-weight:600;font-size:1.15rem}
+.contact-grid .ci .label{margin-bottom:8px;display:block}
+footer{padding:40px 0 96px;border-top:1px solid #ECEEF2;color:var(--dim);font-size:.85rem}
+.brandbar{position:fixed;left:0;right:0;bottom:0;background:#101318;color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;padding:10px 44px 10px 16px;font-size:.85rem;z-index:50}
+.brandbar a{background:#C1FE00;color:#101318;text-decoration:none;font-weight:600;padding:6px 14px;border-radius:6px;font-size:.8rem}
+.brandbar button{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:#8B93A7;font-size:1rem;cursor:pointer;padding:6px}
+@media(max-width:720px){.services{grid-template-columns:1fr}.about-grid,.contact-grid{grid-template-columns:1fr}.hero{padding:64px 0 48px}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+<span class="kicker">{{businessName}}</span>
+<h1>{{headline}}</h1>
+<p>{{subheadline}}</p>
+<a class="cta" href="{{phoneHref}}">{{ctaLabel}}</a>
+</div></header>
+
+<section><div class="wrap">
+<span class="label">{{servicesLabel}}</span>
+<div class="services">{{servicesHtml}}</div>
+</div></section>
+
+<section><div class="wrap">
+<span class="label">{{aboutLabel}}</span>
+<div class="about-grid">
+<p>{{about}}</p>
+{{ratingBlock}}
+</div>
+</div></section>
+
+<section><div class="wrap">
+<span class="label">{{contactLabel}}</span>
+<div class="contact-grid">
+<div class="ci"><span class="label">{{phoneLabel}}</span><a href="{{phoneHref}}">{{phone}}</a></div>
+<div class="ci"><span class="label">{{addressLabel}}</span><p>{{address}}</p></div>
+</div>
+</div></section>
+
+<footer><div class="wrap"><p>© {{year}} {{businessName}}</p><p style="margin-top:6px">{{disclaimer}}</p></div></footer>
+
+<div class="brandbar" id="bb"><span>Concept by FlowDev</span><a href="{{calLink}}">Book a call</a><button aria-label="Close" onclick="sessionStorage.setItem('bb','1');document.getElementById('bb').style.display='none'">✕</button></div>
+<script>if(sessionStorage.getItem('bb')){document.getElementById('bb').style.display='none'}</script>
+</body>
+</html>
