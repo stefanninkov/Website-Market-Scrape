@@ -15,6 +15,18 @@
         "function": "servePreview"
       },
       {
+        "source": "/px",
+        "function": "px"
+      },
+      {
+        "source": "/gmailAuthStart",
+        "function": "gmailAuthStart"
+      },
+      {
+        "source": "/gmailAuthCallback",
+        "function": "gmailAuthCallback"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
