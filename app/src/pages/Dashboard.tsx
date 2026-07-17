@@ -26,6 +26,8 @@ interface Counts {
   contacted: number;
   replied: number;
   previewViews: number;
+  won: number;
+  lost: number;
 }
 
 export default function Dashboard() {
@@ -36,14 +38,17 @@ export default function Dashboard() {
     setError(null);
     try {
       const col = leadsCol();
-      const [total, noWebsite, newThisWeek, contacted, replied, previewViews] = await Promise.all([
-        getCountFromServer(col),
-        getCountFromServer(query(col, where('websiteType', 'in', ['none', 'facebook', 'instagram']))),
-        getCountFromServer(query(col, where('firstSeenAt', '>=', Timestamp.fromDate(startOfWeek())))),
-        getCountFromServer(query(col, where('outreach.lastSentAt', '!=', null))),
-        getCountFromServer(query(col, where('outreach.replied', '==', true))),
-        getCountFromServer(query(eventsCol(), where('type', '==', 'preview_view'))),
-      ]);
+      const [total, noWebsite, newThisWeek, contacted, replied, previewViews, won, lost] =
+        await Promise.all([
+          getCountFromServer(col),
+          getCountFromServer(query(col, where('websiteType', 'in', ['none', 'facebook', 'instagram']))),
+          getCountFromServer(query(col, where('firstSeenAt', '>=', Timestamp.fromDate(startOfWeek())))),
+          getCountFromServer(query(col, where('outreach.lastSentAt', '!=', null))),
+          getCountFromServer(query(col, where('outreach.replied', '==', true))),
+          getCountFromServer(query(eventsCol(), where('type', '==', 'preview_view'))),
+          getCountFromServer(query(col, where('stage', '==', 'won'))),
+          getCountFromServer(query(col, where('stage', '==', 'lost'))),
+        ]);
       setCounts({
         total: total.data().count,
         noWebsite: noWebsite.data().count,
@@ -51,6 +56,8 @@ export default function Dashboard() {
         contacted: contacted.data().count,
         replied: replied.data().count,
         previewViews: previewViews.data().count,
+        won: won.data().count,
+        lost: lost.data().count,
       });
     } catch (err) {
       setError((err as Error).message);
@@ -105,6 +112,15 @@ export default function Dashboard() {
         </div>
       )}
 
+      {counts && (counts.won > 0 || counts.lost > 0) && (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-xs">
+          <Counter label="Won" value={counts.won} accent />
+          <Counter label="Lost" value={counts.lost} />
+        </div>
+      )}
+
+      <ReplyRateChart />
+
       <section className="mt-6">
         <h2 className="mb-3 text-sm font-semibold">Due follow-ups</h2>
         {due.length === 0 ? (
@@ -133,6 +149,104 @@ export default function Dashboard() {
         )}
       </section>
     </div>
+  );
+}
+
+const CHART_WEEKS = 8;
+
+/** Sent vs replies per ISO week, last 8 weeks — tiny inline SVG, no chart lib. */
+function ReplyRateChart() {
+  const since = useMemo(() => {
+    const d = startOfWeek();
+    d.setDate(d.getDate() - (CHART_WEEKS - 1) * 7);
+    return d;
+  }, []);
+  const q = useMemo(
+    () =>
+      query(
+        eventsCol(),
+        where('type', 'in', ['sent', 'reply']),
+        where('at', '>=', Timestamp.fromDate(since)),
+        orderBy('at', 'asc'),
+        limit(2000),
+      ),
+    [since],
+  );
+  const { data: events } = useQuery(q);
+
+  const weeks = useMemo(() => {
+    const buckets = Array.from({ length: CHART_WEEKS }, (_, i) => {
+      const start = new Date(since);
+      start.setDate(start.getDate() + i * 7);
+      return { start, sent: 0, replies: 0 };
+    });
+    for (const e of events) {
+      const idx = Math.floor((e.at.toMillis() - since.getTime()) / (7 * 86400_000));
+      const bucket = buckets[idx];
+      if (!bucket) continue;
+      if (e.type === 'sent') bucket.sent += 1;
+      else if (e.type === 'reply') bucket.replies += 1;
+    }
+    return buckets;
+  }, [events, since]);
+
+  const max = Math.max(1, ...weeks.map((w) => w.sent));
+  if (events.length === 0) return null;
+
+  const W = 480;
+  const H = 120;
+  const bw = W / CHART_WEEKS;
+
+  return (
+    <section className="mt-6">
+      <h2 className="mb-3 text-sm font-semibold">Sent vs replies · last {CHART_WEEKS} weeks</h2>
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface p-4">
+        <svg viewBox={`0 0 ${W} ${H + 20}`} className="h-36 w-full min-w-[360px]">
+          {weeks.map((w, i) => {
+            const sentH = (w.sent / max) * H;
+            const repH = (w.replies / max) * H;
+            const label = `${w.start.getDate()}.${w.start.getMonth() + 1}.`;
+            return (
+              <g key={i}>
+                <rect
+                  x={i * bw + bw * 0.18}
+                  y={H - sentH}
+                  width={bw * 0.28}
+                  height={sentH}
+                  rx="2"
+                  fill="#5AA9FF"
+                />
+                <rect
+                  x={i * bw + bw * 0.52}
+                  y={H - repH}
+                  width={bw * 0.28}
+                  height={repH}
+                  rx="2"
+                  fill="#3DDC97"
+                />
+                <text
+                  x={i * bw + bw / 2}
+                  y={H + 14}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fill="#8B93A7"
+                >
+                  {label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        <div className="mt-2 flex gap-4 text-xs text-text-dim">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-sm bg-info" /> sent
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-sm bg-success" /> replies
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }
 
