@@ -26,6 +26,39 @@ Entry template:
 
 ---
 
+## 2026-07-17 — Phase 4: Preview generator
+
+**Phase:** Phase 4 — Preview generator
+
+**Done (8 of 9 tasks verified running; image curation awaits Stefan's assets):**
+- **4 preview templates** (`workers/templates/*.html`, verified by screenshot at 375/1440 with zero horizontal overflow): minimal-light (dot-grid hero, oversized clamp headline, numbered 3-col services), bold-dark (full-bleed dark hero + gradient overlay, per-niche accent — gym lime / auto red / trades amber, uppercase grotesk, diagonal divider, hover-lift cards), warm-local (cream + serif display, 24px-rounded hero visual, cozy 2-col services with icons, prominent rating), corporate-clean (navy/teal, split hero, checkmark service rows). All four: shared structure per DESIGN.md, tel: CTA, rating block only at ≥4.0 (verified hidden below), Serbian/English content strings by country, always-English dismissible branding bar (sessionStorage), concept disclaimer, full OG/Twitter meta, one preloaded Google Font each, no unfilled slots (asserted).
+- **PreviewCopy generation** (`workers/src/handlers/ai-preview.ts`): SPEC §8 JSON contract, zod-validated, one retry, budget-tracked, RS→Serbian rule, weakness-aware but never negative, invents no facts.
+- **preview-worker** (`workers/src/handlers/preview.ts` + `lib/render.ts` + `lib/og.ts`, verified E2E against firestore+storage emulators): copy → slug (`frizerski-salon-ana-x7k2` shape, transliterated diacritics) → render → `previews/{slug}.html` + OG PNG (1200x630, template-palette card screenshotted via the existing Playwright dep) → `preview: ready`. Auto template by niche (verified warm-local for hair salons), manual override honored, slug + view count stable across regenerate (verified), failure path → `preview.status: failed`.
+- **servePreview** (verified through the functions emulator): streams HTML and `{slug}-og.png` from Storage via Admin SDK (owner-only rules stay closed), correct content types, 404 for unknown slugs, and on page views only — increments `preview.views`, sets `lastViewAt`, appends `preview_view` event (all verified).
+- **Drawer preview section** (verified by screenshot): status + view count + last view, clickable /p/ URL, template select with "(auto)" marker, Generate/Regenerate.
+- **{previewUrl} in email prompts** (verified): a ready preview's URL flows into the generate_email prompt; without one the prompt pivots to a call CTA.
+- **Dashboard preview-views counter** (count of preview_view events).
+- **Niche image plumbing without curated assets**: deterministic per-lead pick from Storage `niche-images/{niche}/` (hash of placeId), embedded as a data URI so previews stay single-file, 300KB cap, gradient fallback per template. Lights up automatically once Stefan uploads image sets.
+
+**Decisions:**
+- OG images are rendered by screenshotting a palette-matched HTML card in headless Chromium — reuses the Playwright dependency the analyzer already requires instead of adding satori/node-canvas (SPEC §8 named those as examples of the approach, not requirements).
+- Hand-written compact CSS per template rather than a Tailwind build step — same outcome SPEC asks for (self-contained HTML, inlined CSS) with no extra toolchain; DESIGN.md's exact tokens are embedded.
+- Curated niche images are embedded as base64 data URIs (self-contained previews, no public Storage paths); files over 300KB fall back to gradients to protect the performance budget.
+- PreviewCopy generation is authored as ai-worker code but invoked from the preview pipeline, so one `generate_preview` job covers copy + render (SPEC §4's job types stay closed; no cross-worker handoff to race).
+- Regenerate keeps the slug (links in already-sent emails never break) and the view counter.
+
+**Deviations from SPEC:**
+- OG generation mechanism (Playwright screenshot instead of satori/node-canvas) and template CSS authored by hand instead of a Tailwind build — outcomes match SPEC/DESIGN; noted for transparency.
+
+**New dependencies:** none.
+
+**Known issues / next up:**
+- "Curate niche image sets" stays unchecked: sourcing licensed stock photos needs Stefan (can't be done from this environment). The picker + fallback pipeline is verified with gradients.
+- Google Fonts fall back to system stacks in the sandbox (no external network in the test browser); real deployments load them. Lighthouse ≥95 must be measured on the deployed site.
+- Next: Phase 5 polish backlog (bulk previews, CSV export, stats, PWA manifest).
+
+---
+
 ## 2026-07-17 — Phase 3: Outreach (AI emails + Gmail)
 
 **Phase:** Phase 3 — Outreach

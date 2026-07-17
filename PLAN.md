@@ -54,15 +54,15 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 4 — Preview generator
 
-- [ ] Build 4 preview templates per DESIGN.md §Preview templates (minimal-light, bold-dark, warm-local, corporate-clean), self-contained HTML with {{slots}}
+- [x] Build 4 preview templates per DESIGN.md §Preview templates (minimal-light, bold-dark, warm-local, corporate-clean), self-contained HTML with {{slots}}
 - [ ] Curate niche image sets into Storage niche-images/ + gradient fallbacks
-- [ ] ai-worker: PreviewCopy generation per SPEC §8 contract (language rule applies)
-- [ ] preview-worker: render template + copy + business data, upload previews/{slug}.html, generate OG image previews/{slug}-og.png
-- [ ] servePreview function + Hosting rewrite /p/**, preview_view events, view counter
-- [ ] Branding bar + concept disclaimer + full OG/Twitter meta in all templates
-- [ ] Lead drawer preview section: generate (auto template by niche, manual override), open link, regenerate, view count
-- [ ] {previewUrl} wired into email generation prompt
-- [ ] Dashboard: preview views counter
+- [x] ai-worker: PreviewCopy generation per SPEC §8 contract (language rule applies)
+- [x] preview-worker: render template + copy + business data, upload previews/{slug}.html, generate OG image previews/{slug}-og.png
+- [x] servePreview function + Hosting rewrite /p/**, preview_view events, view counter
+- [x] Branding bar + concept disclaimer + full OG/Twitter meta in all templates
+- [x] Lead drawer preview section: generate (auto template by niche, manual override), open link, regenerate, view count
+- [x] {previewUrl} wired into email generation prompt
+- [x] Dashboard: preview views counter
 
 **Milestone: one click produces a shareable modern one-pager, link goes into the cold email, views tracked.**
 
