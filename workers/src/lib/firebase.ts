@@ -7,7 +7,12 @@
 import { readFileSync } from 'node:fs';
 import { cert, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import 'dotenv/config';
+
+// Derived from firebase-admin to avoid the @google-cloud/storage CJS/ESM
+// dual-package type clash.
+export type Bucket = ReturnType<ReturnType<typeof getStorage>['bucket']>;
 
 let app: App | null = null;
 
@@ -34,4 +39,13 @@ export function initFirebase(): Firestore {
     app = initializeApp({ credential: cert(serviceAccount) });
   }
   return getFirestore(app);
+}
+
+/** Default Storage bucket (FIREBASE_STORAGE_BUCKET or {project}.appspot.com). */
+export function initBucket(): Bucket {
+  initFirebase(); // ensures the app exists
+  const name =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    `${process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || 'demo-wms'}.appspot.com`;
+  return getStorage(app!).bucket(name);
 }
