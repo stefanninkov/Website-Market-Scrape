@@ -38,17 +38,17 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 3 — Outreach (AI emails + Gmail)
 
-- [ ] Settings: identity config (business name, address, Cal.com link, signature), tone guide editor
-- [ ] ai-worker: email draft generation per SPEC §7 (JSON contract, zod validation, retry once, budget tracking, RS→Serbian rule)
-- [ ] Lead drawer: Generate email → editable draft → Send
+- [x] Settings: identity config (business name, address, Cal.com link, signature), tone guide editor
+- [x] ai-worker: email draft generation per SPEC §7 (JSON contract, zod validation, retry once, budget tracking, RS→Serbian rule)
+- [x] Lead drawer: Generate email → editable draft → Send
 - [ ] Gmail OAuth flow in Settings, token storage in config/gmail
 - [ ] Send via Gmail API with tracking pixel injection
-- [ ] px function: log open events, increment opens
+- [x] px function: log open events, increment opens
 - [ ] Reply detection: Gmail watch + Pub/Sub + gmailPushHandler, threadId matching, auto-stage to replied; VPS 30-min polling fallback; cron watch renewal
-- [ ] Follow-ups: followUpDue on send (+4 days default), Due follow-ups view on Dashboard
-- [ ] Pipeline page: kanban with drag and drop (long-press on mobile)
-- [ ] Bulk generate drafts (sequential), daily send soft warning (20/day)
-- [ ] Events timeline in lead drawer
+- [x] Follow-ups: followUpDue on send (+4 days default), Due follow-ups view on Dashboard
+- [x] Pipeline page: kanban with drag and drop (long-press on mobile)
+- [x] Bulk generate drafts (sequential), daily send soft warning (20/day)
+- [x] Events timeline in lead drawer
 
 **Milestone: full outreach loop inside the app, personalized emails, opens and replies tracked.**
 

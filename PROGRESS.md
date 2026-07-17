@@ -26,6 +26,43 @@ Entry template:
 
 ---
 
+## 2026-07-17 — Phase 3: Outreach (AI emails + Gmail)
+
+**Phase:** Phase 3 — Outreach
+
+**Done (8 of 11 tasks verified running; 3 built but blocked on live Gmail creds):**
+- **ai-worker email drafts** (`workers/src/handlers/ai-email.ts`, verified): prompt from lead data + analysis.reasons + preview.url + config/toneGuide + config/identity; strict JSON `{subject, body}`; ≤120 words / one CTA / identity + address + opt-out rules in the system prompt; defensive parsing (`lib/parse.ts`: fences, prose-wrapped JSON) + zod; one retry with a "return only valid JSON" reminder then fail; budget assert/record around every call using real token usage; optional freetext steering. **Verified with a fake Anthropic client**: RS lead exercised the invalid-JSON → retry path and produced a Serbian draft; DE lead got English; anthropic budget counter accrued from token usage; prompts carried the right language rule.
+- **Anthropic client** (`lib/anthropic.ts`): `claude-sonnet-4-6` per SPEC (env-overridable), lazy init so a missing key fails jobs, not the worker.
+- **Settings page** (verified by screenshot at 1440/375): identity card, tone-guide editor, Gmail connect card (live status from config/gmail), monthly budget limits editor.
+- **Lead drawer outreach section** (verified): steering input, Generate/Regenerate via enqueueJob, editable subject/body persisted on blur, Send via Gmail with confirm; sent/opens/replied summary; soft-warning toast when the send count passes 20/day. Events timeline (Activity) from `events` with a composite index added.
+- **px function** (verified against the functions emulator): serves the 1x1 gif always, increments `outreach.opens`, sets `lastOpenAt`, appends an `open` event; unknown lead ids still get the gif.
+- **sendEmail callable** (code + auth gate verified): validates owner/lead/draft/email, builds multipart MIME (RFC 2047 subject, UTF-8 plain + HTML with pixel — builder verified by decoding output), sends via Gmail, sets threadId/lastSentAt/followUpDue(+4d), auto-advances new/qualified → contacted, writes `sent` event, returns today's send count for the soft warning.
+- **Gmail OAuth flow** (code complete): gmailAuthStart → consent (offline, forced refresh token) → gmailAuthCallback verifies the Google account is the owner, stores tokens in config/gmail, bounces to /settings. Hosting rewrites for /px and the OAuth endpoints added.
+- **Reply detection** (code complete; fallback logic verified): gmailPushHandler (Pub/Sub topic gmail-replies) walks history → threadIds → `applyRepliesFromThreads`; VPS cron polls threads every 30 min via `pollReplies` and renews the watch daily via `renewWatchIfDue`. **Verified with a fake Gmail client against the emulator**: reply detection (`threadHasReply`), lead → replied + stage change + followUpDue cleared + `reply` event, idempotent second poll, watch renewal at <24h and skip when fresh.
+- **Dashboard v2** (verified): due-follow-ups counter + list (followUpDue ≤ now, unanswered), reply-rate counter (replied/contacted, 33% on seed data).
+- **Pipeline kanban** (verified at 1440/375): six columns, drag-and-drop on desktop, per-card stage picker on mobile, horizontal scroll.
+- **Leads bulk actions** (verified UI): select-all/per-row checkboxes, bulk Generate drafts (sequential enqueue; the single ai-worker serializes generation per SPEC), bulk stage move, bulk Ignore with confirm.
+
+**Decisions:**
+- Mobile kanban uses a per-card stage select instead of long-press drag — reliable on touch, zero dependencies; long-press drag can replace it later if it ever grates.
+- sendEmail returns `{sentToday, softLimit}` and the UI toasts the soft warning — keeps the 20/day rule advisory (SPEC: soft), never blocking.
+- gmailAuthCallback rejects any Google account other than the owner's before storing tokens (single-user lock, matches rules/OWNER_EMAIL).
+- Reply detection is belt-and-braces per SPEC: push handler for freshness, VPS poll as the fallback; both share the same lead-update shape and event type.
+- Composite indexes added for `events(leadId, at desc)` (drawer timeline) and `events(type, at)` (daily send count).
+
+**Deviations from SPEC:** none.
+
+**New dependencies:**
+- `@anthropic-ai/sdk` (workers) — the Anthropic API client for SPEC §7/§8 generation.
+- `googleapis` (functions, workers) — Gmail API + OAuth for send/replies/watch (SPEC §7).
+
+**Known issues / next up:**
+- The three unchecked Phase 3 tasks (OAuth flow, live send, live reply detection) are code-complete but need Stefan's GMAIL_CLIENT_ID/SECRET, the `gmail-replies` Pub/Sub topic, and a real Gmail account to verify end-to-end — everything up to the Gmail API boundary is tested.
+- gmailPushHandler deploys only after `gcloud pubsub topics create gmail-replies` (topic must exist).
+- Next: Phase 4 (preview generator) — templates, preview copy, preview-worker, servePreview; verifiable locally.
+
+---
+
 ## 2026-07-16 — Phase 2: Analyzer + scoring
 
 **Phase:** Phase 2 — Analyzer + scoring
