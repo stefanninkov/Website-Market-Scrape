@@ -10,6 +10,7 @@
 
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
 import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https';
 import { onMessagePublished } from 'firebase-functions/v2/pubsub';
 import { google } from 'googleapis';
@@ -339,9 +340,71 @@ export const gmailPushHandler = onMessagePublished(
 );
 
 // ---------------------------------------------------------------------------
-// servePreview — Phase 4
+// servePreview — /p/{slug} + /p/{slug}-og.png from Storage (SPEC §8).
+// Streams via the Admin SDK (bypasses owner-only storage rules), logs a
+// preview_view event and bumps the view counter for page loads (not OG hits).
 // ---------------------------------------------------------------------------
 
-export const servePreview = onRequest({ region: REGION }, (_req, res) => {
-  res.status(404).send('Preview not found. servePreview lands in Phase 4.');
+export const servePreview = onRequest({ region: REGION }, async (req, res) => {
+  // Path arrives as /p/{slug} via the Hosting rewrite (or /{slug} when the
+  // function is hit directly). Normalize and validate.
+  const raw = req.path.replace(/^\/p\//, '').replace(/^\//, '');
+  const slugPart = decodeURIComponent(raw.split('/')[0] ?? '');
+  if (!slugPart || !/^[a-z0-9-]+(\.png)?$/.test(slugPart)) {
+    res.status(404).send('Not found.');
+    return;
+  }
+
+  const isOg = slugPart.endsWith('-og.png');
+  const slug = isOg ? slugPart.slice(0, -'-og.png'.length) : slugPart;
+  const objectPath = isOg ? `previews/${slug}-og.png` : `previews/${slug}.html`;
+
+  try {
+    const file = getStorage().bucket().file(objectPath);
+    const [exists] = await file.exists();
+    if (!exists) {
+      res.status(404).send('Preview not found.');
+      return;
+    }
+    const [contents] = await file.download();
+
+    if (isOg) {
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.status(200).send(contents);
+      return;
+    }
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-cache');
+    res.status(200).send(contents.toString('utf8'));
+
+    // View tracking after the response — a warm lead signal (SPEC §8).
+    try {
+      const leads = await db
+        .collection(COLLECTIONS.leads)
+        .where('preview.slug', '==', slug)
+        .limit(1)
+        .get();
+      const doc = leads.docs[0];
+      if (doc) {
+        const now = Timestamp.now();
+        await doc.ref.update({
+          'preview.views': FieldValue.increment(1),
+          'preview.lastViewAt': now,
+        });
+        await db.collection(COLLECTIONS.events).add({
+          leadId: doc.id,
+          type: 'preview_view',
+          at: now,
+          meta: { slug },
+        });
+      }
+    } catch (err) {
+      console.error('servePreview view tracking failed:', err);
+    }
+  } catch (err) {
+    console.error('servePreview failed:', err);
+    res.status(500).send('Preview temporarily unavailable.');
+  }
 });
