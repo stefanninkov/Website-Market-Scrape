@@ -26,6 +26,30 @@ Entry template:
 
 ---
 
+## 2026-07-17 — Phase 5: Polish backlog
+
+**Phase:** Phase 5 — Polish backlog
+
+**Done (all 4 tasks):**
+- **Bulk preview generation**: "Generate previews" in the Leads bulk bar — sequential `generate_preview` enqueue for the selection (same verified enqueue + preview pipeline as singles).
+- **CSV export** (verified by capturing the actual download in headless Chromium): exports the currently filtered leads with name/niche/location/contact/websiteType/score/stage/rating/previewUrl columns, correct RFC-style quoting (comma-containing addresses verified), BOM for Excel, dated filename.
+- **Won/Lost stats + reply-rate chart** (verified by screenshot): Won/Lost counters (shown once any exist) and an inline-SVG sent-vs-replies weekly bar chart for the last 8 weeks, built from `events` with the existing `(type, at)` composite index — no chart dependency.
+- **PWA manifest** (verified served): `manifest.webmanifest` + generated 192/512 icons (dark bg, lime F), linked with theme color and apple-touch-icon so the app installs to the phone home screen.
+
+**Decisions:**
+- Chart is hand-rolled SVG in palette colors (info/success) — a chart library for one small bar chart would violate the no-unjustified-dependencies rule.
+- CSV is generated client-side from the filtered table view, so filters double as the export selector.
+
+**Deviations from SPEC:** none.
+
+**New dependencies:** none.
+
+**Known issues / next up:**
+- Phase 6 (FlowDev portfolio) starts with "gather content from Stefan" and a design direction decided with him — blocked on his input by design, so autonomous work stops here.
+- Full remaining-for-Stefan list: Firebase project + `.firebaserc`/`app/.env`, Places API key, Anthropic key, Gmail OAuth client + `gmail-replies` topic, Hetzner VPS (README has steps), niche image sets (optional), then live-verify the three Gmail tasks and the Phase 0 "Firebase project init" checkbox.
+
+---
+
 ## 2026-07-17 — Phase 4: Preview generator
 
 **Phase:** Phase 4 — Preview generator

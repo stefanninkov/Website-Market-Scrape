@@ -68,10 +68,10 @@ Build order. Work top to bottom, phase by phase. Check tasks off as they're comp
 
 ## Phase 5 — Polish backlog (only after 1-4)
 
-- [ ] Bulk preview generation for selected leads
-- [ ] CSV export of leads
-- [ ] Won/Lost stats, reply-rate over time chart
-- [ ] PWA manifest so the app installs to Stefan's phone home screen
+- [x] Bulk preview generation for selected leads
+- [x] CSV export of leads
+- [x] Won/Lost stats, reply-rate over time chart
+- [x] PWA manifest so the app installs to Stefan's phone home screen
 
 ## Phase 6 — FlowDev portfolio website (separate deliverable, last)
 
