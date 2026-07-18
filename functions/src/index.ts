@@ -276,8 +276,11 @@ export const sendEmail = onCall<{ placeId?: string }>({ region: REGION }, async 
 // gmailPushHandler — reply detection (SPEC §7).
 // Gmail watch publishes to the gmail-replies topic; we scan history for new
 // inbox messages and match their threadIds to contacted leads.
-// NOTE: deploying this function requires the Pub/Sub topic to exist:
-//   gcloud pubsub topics create gmail-replies
+//
+// OPT-IN: reply *push* needs the gmail-replies Pub/Sub topic to exist and the
+// Gmail publisher grant on it. It's off by default so functions deploy without
+// any Pub/Sub setup — the VPS 30-min poll covers replies meanwhile. Turn it on
+// by setting ENABLE_GMAIL_PUSH=1 in functions/.env (after creating the topic).
 // ---------------------------------------------------------------------------
 
 export async function applyRepliesFromThreads(threadIds: string[]): Promise<number> {
@@ -311,10 +314,13 @@ export async function applyRepliesFromThreads(threadIds: string[]): Promise<numb
   return matched;
 }
 
-export const gmailPushHandler = onMessagePublished(
-  { region: REGION, topic: 'gmail-replies' },
-  async (event) => {
-    try {
+export const gmailPushHandler =
+  process.env.ENABLE_GMAIL_PUSH !== '1'
+    ? undefined
+    : onMessagePublished(
+        { region: REGION, topic: process.env.PUBSUB_TOPIC || 'gmail-replies' },
+        async (event) => {
+          try {
       const payload = event.data.message.json as { historyId?: string | number } | undefined;
       const newHistoryId = payload?.historyId ? String(payload.historyId) : null;
 
