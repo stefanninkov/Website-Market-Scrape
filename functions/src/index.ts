@@ -36,6 +36,16 @@ function appBaseUrl(): string {
   return process.env.APP_BASE_URL || `https://${process.env.GCLOUD_PROJECT}.web.app`;
 }
 
+/**
+ * Default Storage bucket. Newer projects use the `.firebasestorage.app`
+ * naming, which the Admin SDK's legacy `.appspot.com` default gets wrong —
+ * so honor STORAGE_BUCKET when set (functions/.env).
+ */
+function previewBucket() {
+  const name = process.env.STORAGE_BUCKET;
+  return name ? getStorage().bucket(name) : getStorage().bucket();
+}
+
 function requireOwner(email: string | undefined): void {
   if (email !== OWNER_EMAIL) throw new HttpsError('permission-denied', 'Owner only.');
 }
@@ -360,7 +370,7 @@ export const servePreview = onRequest({ region: REGION }, async (req, res) => {
   const objectPath = isOg ? `previews/${slug}-og.png` : `previews/${slug}.html`;
 
   try {
-    const file = getStorage().bucket().file(objectPath);
+    const file = previewBucket().file(objectPath);
     const [exists] = await file.exists();
     if (!exists) {
       res.status(404).send('Preview not found.');
