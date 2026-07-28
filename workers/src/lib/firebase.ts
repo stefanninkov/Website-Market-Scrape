@@ -1,10 +1,14 @@
 /**
- * Admin SDK init for workers. Credentials come from the service account JSON
- * at FIREBASE_SERVICE_ACCOUNT_PATH (workers/.env). Fails fast with a clear
- * message instead of a cryptic SDK error.
+ * Admin SDK init for workers. Credentials come from the JSON at
+ * FIREBASE_SERVICE_ACCOUNT_PATH (workers/.env), which may be either:
+ *   - a service account key ("type": "service_account"), or
+ *   - user credentials ("type": "authorized_user"), e.g. from
+ *     `gcloud auth application-default login`.
+ * Fails fast with a clear message instead of a cryptic SDK error.
  */
 
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { cert, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -35,8 +39,18 @@ export function initFirebase(): Firestore {
     } catch {
       throw new Error(`Service account file not found at "${path}" (FIREBASE_SERVICE_ACCOUNT_PATH).`);
     }
-    const serviceAccount = JSON.parse(raw) as Record<string, string>;
-    app = initializeApp({ credential: cert(serviceAccount) });
+    const creds = JSON.parse(raw) as Record<string, string>;
+    const projectId = process.env.GCLOUD_PROJECT || creds.project_id;
+
+    if (creds.type === 'authorized_user') {
+      // The Admin SDK's Firestore client rejects an explicit refreshToken
+      // credential, but accepts application default credentials — which do
+      // understand this format. Point ADC at the same file.
+      process.env.GOOGLE_APPLICATION_CREDENTIALS = resolve(path);
+      app = initializeApp({ projectId });
+    } else {
+      app = initializeApp({ credential: cert(creds), projectId });
+    }
   }
   return getFirestore(app);
 }
