@@ -62,6 +62,11 @@ Leads table on mobile renders as a card list: name + score badge on line 1, nich
 
 ## Part 2 — Preview templates
 
+> **See [PREVIEW-GUIDE.md](PREVIEW-GUIDE.md)** for the full guide to building
+> these pages — purpose, design direction, copy rules, ship checklist and
+> roadmap. Where the two disagree, PREVIEW-GUIDE.md wins for preview sites.
+> This section remains the quick visual reference.
+
 Client-facing one-pagers. These sell Stefan's work, quality bar is a real agency landing page. Self-contained HTML files (inlined CSS from a Tailwind build step, zero external JS, system font stack fallback with one Google Font per template).
 
 ### Shared structure (all 4 templates)
