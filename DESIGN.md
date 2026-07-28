@@ -62,10 +62,12 @@ Leads table on mobile renders as a card list: name + score badge on line 1, nich
 
 ## Part 2 — Preview templates
 
-> **See [PREVIEW-GUIDE.md](PREVIEW-GUIDE.md)** for the full guide to building
-> these pages — purpose, design direction, copy rules, ship checklist and
-> roadmap. Where the two disagree, PREVIEW-GUIDE.md wins for preview sites.
-> This section remains the quick visual reference.
+> **See [WEB-STANDARD.md](WEB-STANDARD.md)** — the craft standard for every
+> website we build (previews, the FlowDev portfolio, client work): type scales,
+> color, spacing, motion, imagery, per-industry direction, accessibility,
+> performance budgets, anti-patterns and the ship checklist. Where the two
+> disagree, WEB-STANDARD.md wins for websites. This section stays as the quick
+> visual reference for the four preview variants.
 
 Client-facing one-pagers. These sell Stefan's work, quality bar is a real agency landing page. Self-contained HTML files (inlined CSS from a Tailwind build step, zero external JS, system font stack fallback with one Google Font per template).
 

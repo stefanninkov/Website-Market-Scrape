@@ -10,7 +10,8 @@ Source of truth documents, in priority order:
 1. **SPEC.md** — what to build (architecture, data model, features). Never contradict it. If something is ambiguous or seems wrong, ask Stefan before improvising.
 2. **PLAN.md** — build order. Work strictly phase by phase, top to bottom. Do not start a later phase task while an earlier phase task is unchecked, unless Stefan says so.
 3. **DESIGN.md** — all UI and preview template decisions. Do not invent visual styles.
-4. **PROGRESS.md** — living log. Update it every session (see Workflow).
+4. **WEB-STANDARD.md** — the craft standard for every website we build (previews, portfolio, client work). Authoritative over DESIGN.md for websites; DESIGN.md still rules the internal app UI.
+5. **PROGRESS.md** — living log. Update it every session (see Workflow).
 
 ## Workflow
 
