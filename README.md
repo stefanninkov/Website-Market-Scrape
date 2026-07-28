@@ -47,6 +47,21 @@ firebase deploy --only functions
 
 Security rules lock every read/write to the owner Google account (`stefan.ninkov@gmail.com`); workers and functions use the Admin SDK.
 
+### Gotcha: 403 "Forbidden" from functions after a deploy
+
+2nd-gen functions are Cloud Run services. If a deploy partially fails, Firebase
+may not grant public invoker, and every function 403s — previews included.
+Auth is enforced *inside* each function (owner check / callable token), so
+public invoker is correct here. Fix:
+
+```bash
+for svc in servepreview px gmailauthstart gmailauthcallback enqueuejob sendemail; do
+  gcloud run services add-iam-policy-binding "$svc" \
+    --region=europe-west1 --member=allUsers --role=roles/run.invoker \
+    --project=website-market-scrape
+done
+```
+
 ## VPS setup (Hetzner CX22, Ubuntu 24.04)
 
 One-time provisioning:
