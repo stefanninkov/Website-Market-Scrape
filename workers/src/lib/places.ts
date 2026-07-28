@@ -27,13 +27,14 @@ export interface PlaceDetails {
   rating: number | null;
   reviewCount: number | null;
   primaryType: string | null;
+  openingHours: string[] | null;
 }
 
 export interface PlacesClient {
   /** One page (≤20) of place IDs for a text query. */
   textSearch(query: string, regionCode: string, pageToken?: string): Promise<TextSearchPage>;
-  /** Strict-field-mask Details for a single place. */
-  placeDetails(placeId: string): Promise<PlaceDetails>;
+  /** Strict-field-mask Details for a single place. `lang` localizes hours. */
+  placeDetails(placeId: string, lang?: 'sr' | 'en'): Promise<PlaceDetails>;
 }
 
 // Politeness / honesty: identify ourselves (CLAUDE.md).
@@ -54,7 +55,45 @@ const DETAILS_MASK = [
   'rating',
   'userRatingCount',
   'primaryTypeDisplayName',
+  // Same billing SKU tier as rating/phone/website — no extra cost, and hours
+  // are one of the highest-value facts on a preview page.
+  'regularOpeningHours',
 ].join(',');
+
+/** Day names for the opening-hours table, Serbian for RS leads. */
+const DAY_NAMES: Record<'sr' | 'en', string[]> = {
+  sr: ['Nedelja', 'Ponedeljak', 'Utorak', 'Sreda', 'Četvrtak', 'Petak', 'Subota'],
+  en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+};
+
+const hhmm = (h: number, m: number): string => `${h}:${String(m).padStart(2, '0')}`;
+
+/**
+ * Places periods → one display line per weekday, Monday first.
+ * Days with no period are marked closed rather than omitted, so the table
+ * always has seven rows and never looks truncated.
+ */
+export function formatOpeningHours(
+  periods: { open?: { day?: number; hour?: number; minute?: number }; close?: { day?: number; hour?: number; minute?: number } }[],
+  lang: 'sr' | 'en',
+): string[] {
+  const byDay = new Map<number, string[]>();
+  for (const p of periods) {
+    const d = p.open?.day;
+    if (d == null || p.open?.hour == null) continue;
+    const from = hhmm(p.open.hour, p.open.minute ?? 0);
+    const to = p.close?.hour != null ? hhmm(p.close.hour, p.close.minute ?? 0) : '';
+    const range = to ? `${from} – ${to}` : from;
+    byDay.set(d, [...(byDay.get(d) ?? []), range]);
+  }
+  const closed = lang === 'sr' ? 'Zatvoreno' : 'Closed';
+  const order = [1, 2, 3, 4, 5, 6, 0]; // Monday-first
+  return order.map((d) => {
+    const name = DAY_NAMES[lang][d] ?? '';
+    const ranges = byDay.get(d);
+    return `${name}|${ranges && ranges.length > 0 ? ranges.join(', ') : closed}`;
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Response schemas (external data — validated before use)
@@ -75,6 +114,18 @@ const detailsResponseSchema = z.object({
   rating: z.number().optional(),
   userRatingCount: z.number().optional(),
   primaryTypeDisplayName: z.object({ text: z.string() }).optional(),
+  regularOpeningHours: z
+    .object({
+      periods: z
+        .array(
+          z.object({
+            open: z.object({ day: z.number(), hour: z.number(), minute: z.number().optional() }).optional(),
+            close: z.object({ day: z.number(), hour: z.number(), minute: z.number().optional() }).optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 export class PlacesApiError extends Error {
@@ -133,7 +184,7 @@ export function createPlacesClient(apiKey: string): PlacesClient {
     };
   }
 
-  async function placeDetails(placeId: string): Promise<PlaceDetails> {
+  async function placeDetails(placeId: string, lang: 'sr' | 'en' = 'en'): Promise<PlaceDetails> {
     requireKey();
     let res: Response;
     try {
@@ -165,6 +216,9 @@ export function createPlacesClient(apiKey: string): PlacesClient {
       rating: d.rating ?? null,
       reviewCount: d.userRatingCount ?? null,
       primaryType: d.primaryTypeDisplayName?.text ?? null,
+      openingHours: d.regularOpeningHours?.periods?.length
+        ? formatOpeningHours(d.regularOpeningHours.periods, lang)
+        : null,
     };
   }
 

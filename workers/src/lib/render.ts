@@ -61,6 +61,11 @@ interface Strings {
   addressLabel: string;
   reviewsWord: string;
   disclaimer: string;
+  hoursLabel: string;
+  navServices: string;
+  navAbout: string;
+  navVisit: string;
+  callNow: string;
 }
 
 // SPEC §3: Serbian (latinica) for RS leads, English otherwise. Branding bar
@@ -74,6 +79,11 @@ function stringsFor(country: string): Strings {
       phoneLabel: 'Telefon',
       addressLabel: 'Adresa',
       reviewsWord: 'recenzija na Google-u',
+      hoursLabel: 'Radno vreme',
+      navServices: 'Usluge',
+      navAbout: 'O nama',
+      navVisit: 'Kontakt',
+      callNow: 'Pozovite',
       disclaimer:
         'Ovo je konceptni prikaz sajta, ne zvanična prezentacija ovog biznisa. Izradio FlowDev kao predlog.',
     };
@@ -85,6 +95,11 @@ function stringsFor(country: string): Strings {
     phoneLabel: 'Phone',
     addressLabel: 'Address',
     reviewsWord: 'reviews on Google',
+    hoursLabel: 'Opening hours',
+    navServices: 'Services',
+    navAbout: 'About',
+    navVisit: 'Visit',
+    callNow: 'Call',
     disclaimer:
       'This is a concept mockup, not the official website of this business. Built by FlowDev as a proposal.',
   };
@@ -135,6 +150,49 @@ function renderProof(lead: Lead, strings: Strings): string {
   return `<ul class="proof">${items.join('')}</ul>`;
 }
 
+/**
+ * Dark proof band. Uses the real Google rating as a statement rather than
+ * repeating hero copy — duplicate sentences are the fastest way to look
+ * auto-generated. Renders nothing when there's no rating to stand on.
+ */
+function renderProofBand(lead: Lead, strings: Strings): string {
+  if (lead.rating == null) return '';
+  const stars = '★'.repeat(Math.round(Math.min(lead.rating, 5)));
+  const sub = [
+    lead.reviewCount ? `${lead.reviewCount} ${strings.reviewsWord}` : '',
+    lead.category && lead.region ? `${lead.category} · ${lead.region}` : lead.region,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return `<span class="band-stars">${stars}</span><p class="band-score">${lead.rating.toFixed(1)}</p><p class="band-sub">${escapeHtml(sub)}</p>`;
+}
+
+/** Quick-facts aside next to the About copy, real data only. */
+function renderFacts(lead: Lead, strings: Strings): string {
+  const rows: string[] = [];
+  if (lead.category) rows.push(`<div><dt>${strings.navServices}</dt><dd>${escapeHtml(lead.category)}</dd></div>`);
+  if (lead.region) rows.push(`<div><dt>${strings.addressLabel}</dt><dd>${escapeHtml(lead.region)}</dd></div>`);
+  if (lead.rating != null) {
+    rows.push(
+      `<div><dt>Google</dt><dd>★ ${lead.rating.toFixed(1)}${lead.reviewCount ? ` (${lead.reviewCount})` : ''}</dd></div>`,
+    );
+  }
+  if (rows.length === 0) return '';
+  return `<dl class="facts">${rows.join('')}</dl>`;
+}
+
+/** Opening-hours rows from real Places data. Empty string when unknown. */
+function renderHours(lead: Lead): string {
+  if (!lead.openingHours || lead.openingHours.length === 0) return '';
+  const rows = lead.openingHours
+    .map((line) => {
+      const [day = '', hours = ''] = line.split('|');
+      return `<tr><th scope="row">${escapeHtml(day)}</th><td>${escapeHtml(hours)}</td></tr>`;
+    })
+    .join('');
+  return `<table class="hours"><tbody>${rows}</tbody></table>`;
+}
+
 export interface RenderParams {
   lead: Lead;
   copy: PreviewCopy;
@@ -163,6 +221,14 @@ export function renderPreview(params: RenderParams): string {
     servicesHtml: renderServices(templateId, copy),
     ratingBlock: renderRating(lead, strings),
     proofStrip: renderProof(lead, strings),
+    proofBand: renderProofBand(lead, strings),
+    bandHidden: lead.rating == null ? 'hidden' : '',
+    factsHtml: renderFacts(lead, strings),
+    hoursHtml: renderHours(lead),
+    hoursLabel: strings.hoursLabel,
+    // Sections with no real data are dropped entirely (WEB-STANDARD §1.4).
+    hoursHidden: lead.openingHours?.length ? '' : 'hidden',
+    mapQuery: encodeURIComponent(`${lead.name} ${lead.address}`),
     // WEB-STANDARD §8.1: never ship an empty placeholder. With no image the
     // hero becomes type-led and the visual element is omitted entirely.
     heroVisual: heroImageUrl
@@ -181,6 +247,10 @@ export function renderPreview(params: RenderParams): string {
     contactLabel: strings.contactLabel,
     phoneLabel: strings.phoneLabel,
     addressLabel: strings.addressLabel,
+    navServices: strings.navServices,
+    navAbout: strings.navAbout,
+    navVisit: strings.navVisit,
+    callNow: strings.callNow,
     year: String(new Date().getFullYear()),
     accent: boldAccentForNiche(lead.category),
     heroBackground: heroBackground(templateId, heroImageUrl),

@@ -125,6 +125,11 @@ export const leadSchema = z.object({
   websiteType: websiteTypeSchema,
   rating: z.number().min(0).max(5).nullable(),
   reviewCount: z.number().int().min(0).nullable(),
+  // nullish + transform so leads written before this field existed still parse.
+  openingHours: z
+    .array(z.string())
+    .nullish()
+    .transform((v) => v ?? null),
   firstSeenAt: timestampSchema,
   lastSeenAt: timestampSchema,
   isNewBusiness: z.boolean(),

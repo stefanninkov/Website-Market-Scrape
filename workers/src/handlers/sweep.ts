@@ -97,6 +97,7 @@ function buildLead(
     websiteType,
     rating: details.rating,
     reviewCount: details.reviewCount,
+    openingHours: details.openingHours,
     firstSeenAt: now,
     lastSeenAt: now,
     isNewBusiness,
@@ -187,7 +188,10 @@ export function makeSweepHandler(db: Firestore, places: PlacesClient): JobHandle
       }
 
       await assertBudget(db, 'places');
-      const details = await places.placeDetails(placeId);
+      const details = await places.placeDetails(
+        placeId,
+        sweep.country === 'RS' ? 'sr' : 'en',
+      );
       await recordSpend(db, 'places', PLACES_DETAILS_USD);
 
       // Prefer the niche that produced this place: it's the first niche whose

@@ -94,6 +94,11 @@ export interface Lead {
   websiteType: WebsiteType;
   rating: number | null;
   reviewCount: number | null;
+  /**
+   * Localized opening-hours lines from Places, `"Day|09:00 – 17:00"`.
+   * Optional because leads swept before this field existed don't carry it.
+   */
+  openingHours?: string[] | null;
   firstSeenAt: TimestampLike;
   lastSeenAt: TimestampLike;
   isNewBusiness: boolean;
