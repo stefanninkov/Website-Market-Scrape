@@ -118,6 +118,23 @@ function renderRating(lead: Lead, strings: Strings): string {
   return `<div class="rating"><span class="stars">${stars}</span><p>${lead.rating.toFixed(1)} ★ · ${lead.reviewCount ?? 0} ${strings.reviewsWord}</p></div>`;
 }
 
+/**
+ * Proof strip (WEB-STANDARD §9.2) — highest trust-per-pixel element on the
+ * page. Real Places data only; each item is omitted when we don't have it, so
+ * the strip degrades to nothing rather than showing placeholders.
+ */
+function renderProof(lead: Lead, strings: Strings): string {
+  const items: string[] = [];
+  if (lead.rating != null) {
+    const reviews = lead.reviewCount ? ` · ${lead.reviewCount} ${strings.reviewsWord}` : '';
+    items.push(`<li class="proof-rating"><b>★ ${lead.rating.toFixed(1)}</b>${reviews}</li>`);
+  }
+  if (lead.region) items.push(`<li>${escapeHtml(lead.region)}</li>`);
+  if (lead.category) items.push(`<li>${escapeHtml(lead.category)}</li>`);
+  if (items.length === 0) return '';
+  return `<ul class="proof">${items.join('')}</ul>`;
+}
+
 export interface RenderParams {
   lead: Lead;
   copy: PreviewCopy;
@@ -145,6 +162,13 @@ export function renderPreview(params: RenderParams): string {
     metaDescription: escapeHtml(copy.metaDescription),
     servicesHtml: renderServices(templateId, copy),
     ratingBlock: renderRating(lead, strings),
+    proofStrip: renderProof(lead, strings),
+    // WEB-STANDARD §8.1: never ship an empty placeholder. With no image the
+    // hero becomes type-led and the visual element is omitted entirely.
+    heroVisual: heroImageUrl
+      ? `<div class="hero-visual" role="img" aria-label="${escapeHtml(lead.name)}"></div>`
+      : '',
+    heroMode: heroImageUrl ? 'has-visual' : 'type-led',
     phone: escapeHtml(phone || '—'),
     phoneHref,
     address: escapeHtml(lead.address),

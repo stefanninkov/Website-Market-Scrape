@@ -17,74 +17,130 @@
 <meta name="twitter:image" content="{{ogImage}}"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap"/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap"/>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#FAF6EF;--ink:#2B2118;--accent:#C4572E;--dim:#7A6E60}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased}
-h1,h2,h3{font-family:'Fraunces',Georgia,serif}
-.wrap{max-width:1020px;margin:0 auto;padding:0 24px}
-.hero{padding:72px 0 56px}
-.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center}
-.hero .k{color:var(--accent);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:.78rem}
-.hero h1{font-size:clamp(2.3rem,5.5vw,3.8rem);font-weight:700;line-height:1.08;margin-top:12px}
-.hero p{margin-top:16px;color:var(--dim);font-size:1.08rem;max-width:46ch}
-.cta{display:inline-block;margin-top:28px;background:var(--accent);color:#FFF7EE;text-decoration:none;font-weight:600;padding:14px 28px;border-radius:999px;font-size:1rem}
-.hero-visual{aspect-ratio:4/3;border-radius:24px;background:{{heroBackground}};background-size:cover;background-position:center;box-shadow:0 18px 44px rgba(43,33,24,.14)}
+:root{
+  --bg:#FBF7F0; --surface:#FFFDF9; --ink:#241B14; --muted:#6F6357;
+  --accent:#B8492A; --accent-soft:#F2E4D8; --line:rgba(36,27,20,.12);
+  --r:16px;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.62;-webkit-font-smoothing:antialiased;padding-bottom:56px}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+a{color:inherit}
+
+/* ---------- hero ---------- */
+.hero{padding:72px 0 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(rgba(36,27,20,.06) 1px,transparent 1px);
+  background-size:20px 20px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 78%);mask-image:linear-gradient(180deg,#000,transparent 78%)}
+.hero .wrap{position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.eyebrow::before{content:'';width:22px;height:1px;background:var(--accent)}
+h1{font-size:clamp(2.5rem,8.5vw,4.25rem);line-height:1.02;letter-spacing:-.025em;margin-top:16px;max-width:15ch;font-weight:700}
+.lede{margin-top:18px;color:var(--muted);font-size:1.09rem;max-width:44ch}
+
+/* proof strip — WEB-STANDARD §9.2 */
+.proof{list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:24px;font-size:.87rem;color:var(--muted)}
+.proof li{display:flex;align-items:center;gap:14px;white-space:nowrap}
+/* separator trails its item so a wrapped line never starts with a dot */
+.proof li:not(:last-child)::after{content:'';width:3px;height:3px;border-radius:50%;background:rgba(36,27,20,.28);flex:none}
+.proof b{font-weight:600;color:var(--ink)}
+.proof .proof-rating b{color:var(--accent)}
+
+.cta{display:inline-flex;align-items:center;gap:10px;margin-top:28px;background:var(--accent);color:#FFF8F2;text-decoration:none;font-weight:600;padding:15px 30px;border-radius:999px;font-size:1rem;min-height:48px;
+  box-shadow:0 1px 2px rgba(36,27,20,.10),0 10px 24px rgba(184,73,42,.20);transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}
+.cta::after{content:'→';font-size:1.05em}
+@media(hover:hover){.cta:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(36,27,20,.12),0 14px 30px rgba(184,73,42,.26)}}
+.hero-visual{margin-top:36px;aspect-ratio:5/4;border-radius:24px;background:{{heroBackground}};background-size:cover;background-position:center;box-shadow:0 2px 6px rgba(36,27,20,.08),0 22px 48px rgba(36,27,20,.12)}
+
+/* ---------- sections ---------- */
 section{padding:56px 0}
-h2{font-size:1.7rem;font-weight:700}
-.services{display:grid;grid-template-columns:1fr 1fr;gap:14px 40px;margin-top:28px}
-.svc{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px dashed #E3D9C9}
-.svc .ico{flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#F1E7D8;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.05rem}
-.svc h3{font-size:1.06rem;font-weight:700}
-.svc p{color:var(--dim);font-size:.92rem}
-.rating{margin-top:32px;background:#FFFDF8;border:1px solid #EDE3D2;border-radius:18px;padding:24px 28px;display:inline-block}
-.rating .stars{color:#E0A100;font-size:1.35rem;letter-spacing:3px}
-.rating p{margin-top:6px;color:var(--dim);font-size:.95rem}
-.about p{margin-top:20px;color:#4A4036;font-size:1.05rem;max-width:62ch}
-.contact{background:#F3ECDF;border-radius:24px;padding:44px}
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px}
-.contact-grid a{color:var(--accent);font-weight:600;font-size:1.25rem;text-decoration:none}
-.contact-grid .lbl{color:var(--dim);font-size:.75rem;text-transform:uppercase;letter-spacing:.14em;display:block;margin-bottom:6px}
-footer{padding:40px 0 100px;color:var(--dim);font-size:.85rem;text-align:center}
-.brandbar{position:fixed;left:0;right:0;bottom:0;background:#2B2118;color:#FAF6EF;display:flex;align-items:center;justify-content:center;gap:14px;padding:10px 44px 10px 16px;font-size:.85rem;z-index:50}
-.brandbar a{background:#C1FE00;color:#2B2118;text-decoration:none;font-weight:600;padding:6px 14px;border-radius:6px;font-size:.8rem}
-.brandbar button{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:#B4A897;font-size:1rem;cursor:pointer;padding:6px}
-@media(max-width:760px){.hero-grid{grid-template-columns:1fr}.services{grid-template-columns:1fr}.contact-grid{grid-template-columns:1fr}.contact{padding:28px}}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:28px}
+.sec-head h2{font-size:clamp(1.5rem,4.5vw,2rem);letter-spacing:-.02em;line-height:1.15}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--line)}
+
+.services{display:grid;gap:2px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.svc{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;background:var(--surface)}
+.svc .ico{flex:none;width:34px;height:34px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:.9rem;margin-top:1px}
+.svc h3{font-size:1.04rem;letter-spacing:-.01em;line-height:1.3}
+.svc p{color:var(--muted);font-size:.93rem;margin-top:3px;line-height:1.5}
+
+.about{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.about p{color:#3D332A;font-size:1.06rem;max-width:60ch}
+.rating{margin-top:26px;display:inline-flex;flex-direction:column;gap:2px;border-left:3px solid var(--accent);padding:4px 0 4px 16px}
+.rating .stars{color:var(--accent);letter-spacing:3px;font-size:1.05rem}
+.rating p{color:var(--muted);font-size:.9rem}
+
+.contact-grid{display:grid;gap:20px}
+.ci{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
+.ci .lbl{display:block;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.14em;margin-bottom:7px}
+.ci a{color:var(--accent);font-weight:600;font-size:1.22rem;text-decoration:none;letter-spacing:-.01em}
+.ci p{font-size:1.02rem}
+
+footer{padding:36px 0 40px;color:var(--muted);font-size:.84rem;text-align:center;border-top:1px solid var(--line)}
+footer p+p{margin-top:6px;opacity:.85}
+
+.brandbar{position:fixed;left:0;right:0;bottom:0;background:#241B14;color:#FBF7F0;display:flex;align-items:center;justify-content:center;gap:14px;padding:11px 46px 11px 16px;font-size:.85rem;z-index:50}
+.brandbar a{background:#C1FE00;color:#241B14;text-decoration:none;font-weight:600;padding:7px 14px;border-radius:8px;font-size:.8rem;min-height:34px;display:inline-flex;align-items:center}
+.brandbar button{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:#A2917F;font-size:1rem;cursor:pointer;width:34px;height:34px;border-radius:8px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+@media(min-width:768px){
+  .hero{padding:104px 0 72px}
+  section{padding:80px 0}
+  .services{grid-template-columns:1fr 1fr}
+  .contact-grid{grid-template-columns:1fr 1fr}
+  .hero.has-visual .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:52px;align-items:center}
+  .hero.has-visual .hero-visual{margin-top:0}
+  /* Type-led: headline spans wide, then a rule, then lede left / CTA right —
+     editorial rather than a half-empty screen. */
+  .hero.type-led h1{font-size:clamp(3.5rem,7.2vw,5.75rem);max-width:20ch}
+  .hero.type-led .hero-foot{display:grid;grid-template-columns:1fr auto;align-items:end;gap:40px;
+    margin-top:32px;padding-top:28px;border-top:1px solid var(--line)}
+  .hero.type-led .lede{font-size:1.18rem;max-width:46ch;margin-top:0}
+  .hero.type-led .proof{margin-top:18px}
+  .hero.type-led .cta{margin-top:0}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<header class="hero"><div class="wrap hero-grid">
+<header class="hero {{heroMode}}"><div class="wrap">
 <div>
-<span class="k">{{businessName}}</span>
+<span class="eyebrow">{{businessName}}</span>
 <h1>{{headline}}</h1>
-<p>{{subheadline}}</p>
+<div class="hero-foot">
+<div><p class="lede">{{subheadline}}</p>{{proofStrip}}</div>
 <a class="cta" href="{{phoneHref}}">{{ctaLabel}}</a>
 </div>
-<div class="hero-visual" role="img" aria-label="{{businessName}}"></div>
+</div>
+{{heroVisual}}
 </div></header>
 
 <section><div class="wrap">
-<h2>{{servicesLabel}}</h2>
+<div class="sec-head"><h2>{{servicesLabel}}</h2></div>
 <div class="services">{{servicesHtml}}</div>
 </div></section>
 
 <section class="about"><div class="wrap">
-<h2>{{aboutLabel}}</h2>
+<div class="sec-head"><h2>{{aboutLabel}}</h2></div>
 <p>{{about}}</p>
 {{ratingBlock}}
 </div></section>
 
-<section><div class="wrap"><div class="contact">
-<h2>{{contactLabel}}</h2>
+<section><div class="wrap">
+<div class="sec-head"><h2>{{contactLabel}}</h2></div>
 <div class="contact-grid">
-<div><span class="lbl">{{phoneLabel}}</span><a href="{{phoneHref}}">{{phone}}</a></div>
-<div><span class="lbl">{{addressLabel}}</span><p>{{address}}</p></div>
+<div class="ci"><span class="lbl">{{phoneLabel}}</span><a href="{{phoneHref}}">{{phone}}</a></div>
+<div class="ci"><span class="lbl">{{addressLabel}}</span><p>{{address}}</p></div>
 </div>
-</div></div></section>
+</div></section>
 
-<footer><div class="wrap"><p>© {{year}} {{businessName}}</p><p style="margin-top:6px">{{disclaimer}}</p></div></footer>
+<footer><div class="wrap"><p>© {{year}} {{businessName}}</p><p>{{disclaimer}}</p></div></footer>
 
 <div class="brandbar" id="bb"><span>Concept by FlowDev</span><a href="{{calLink}}">Book a call</a><button aria-label="Close" onclick="sessionStorage.setItem('bb','1');document.getElementById('bb').style.display='none'">✕</button></div>
 <script>if(sessionStorage.getItem('bb')){document.getElementById('bb').style.display='none'}</script>
