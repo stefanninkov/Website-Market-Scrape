@@ -66,6 +66,20 @@ interface Strings {
   navAbout: string;
   navVisit: string;
   callNow: string;
+  /** Short word for the review count stat, e.g. "recenzija" / "reviews". */
+  reviewsShort: string;
+  ratingShort: string;
+  daysOpen: string;
+  servicesShort: string;
+  directions: string;
+  ctaBandTitle: string;
+  ctaBandSub: string;
+  scrollCue: string;
+  localBadge: string;
+  /** Section eyebrows — must never repeat the heading below them. */
+  eyeServices: string;
+  eyeAbout: string;
+  eyeVisit: string;
 }
 
 // SPEC §3: Serbian (latinica) for RS leads, English otherwise. Branding bar
@@ -84,6 +98,18 @@ function stringsFor(country: string): Strings {
       navAbout: 'O nama',
       navVisit: 'Kontakt',
       callNow: 'Pozovite',
+      reviewsShort: 'recenzija',
+      ratingShort: 'ocena na Google-u',
+      daysOpen: 'dana u nedelji',
+      servicesShort: 'usluga',
+      directions: 'Uputstvo do nas',
+      ctaBandTitle: 'Rezervišite svoj termin',
+      ctaBandSub: 'Pozovite nas — javljamo se u toku radnog vremena.',
+      scrollCue: 'Skrolujte',
+      localBadge: 'Lokalno',
+      eyeServices: 'Šta radimo',
+      eyeAbout: 'Ko smo',
+      eyeVisit: 'Posetite nas',
       disclaimer:
         'Ovo je konceptni prikaz sajta, ne zvanična prezentacija ovog biznisa. Izradio FlowDev kao predlog.',
     };
@@ -100,9 +126,154 @@ function stringsFor(country: string): Strings {
     navAbout: 'About',
     navVisit: 'Visit',
     callNow: 'Call',
+    reviewsShort: 'reviews',
+    ratingShort: 'rating on Google',
+    daysOpen: 'days a week',
+    servicesShort: 'services',
+    directions: 'Get directions',
+    ctaBandTitle: 'Book your appointment',
+    ctaBandSub: 'Give us a call — we answer during opening hours.',
+    scrollCue: 'Scroll',
+    localBadge: 'Local',
+    eyeServices: 'What we do',
+    eyeAbout: 'Who we are',
+    eyeVisit: 'Come and see us',
     disclaimer:
       'This is a concept mockup, not the official website of this business. Built by FlowDev as a proposal.',
   };
+}
+
+/**
+ * Line-art icon set for service cards. A generic bullet on every row reads as
+ * filler; an icon that matches the service reads as a designed page. Keys are
+ * matched against the AI-written service title in both Serbian and English, so
+ * this stays useful across niches. Falls back to a neutral mark, never blank.
+ */
+const ICON_PATHS: Record<string, string> = {
+  cut: '<circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M20 4L8.3 15.7M14.4 14.4L20 20M8.3 8.3L11.6 11.6"/>',
+  color:
+    '<path d="M12 2.6C6.9 2.6 2.6 6.9 2.6 12S6.9 21.4 12 21.4c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.6-.4-1 0-.9.7-1.6 1.6-1.6h1.9c2.8 0 5.1-2.3 5.1-5.1 0-4.5-4.2-8.4-9.4-8.4z"/><circle cx="7.2" cy="11.4" r="1.1"/><circle cx="9.4" cy="7.2" r="1.1"/><circle cx="14.6" cy="7.2" r="1.1"/><circle cx="17" cy="11" r="1.1"/>',
+  dry: '<path d="M17.7 7.7a2.5 2.5 0 111.8 4.3H2.5M9.6 4.6A2 2 0 1111 8H2.5M12.6 19.4A2 2 0 1014 16H2.5"/>',
+  care: '<path d="M12 3.2l1.9 5.1L19 10.2l-5.1 1.9L12 17.2l-1.9-5.1L5 10.2l5.1-1.9z"/><path d="M18.6 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',
+  event: '<path d="M2.6 8.2l4.7 3.1L12 4l4.7 7.3 4.7-3.1-2.1 10.4H4.7z"/><circle cx="12" cy="16.2" r="1"/>',
+  clean: '<path d="M12 2.8s6 5.4 6 9.3a6 6 0 11-12 0c0-3.9 6-9.3 6-9.3z"/><path d="M9.2 13.6a2.8 2.8 0 002.8 2.8"/>',
+  repair:
+    '<path d="M15.2 3.4a5 5 0 00-4.9 6.1L3.6 16.2a2 2 0 102.8 2.8l6.7-6.7a5 5 0 006.1-6.1l-2.9 2.9-2.9-.6-.6-2.9z"/>',
+  tooth:
+    '<path d="M12 6.1C10.4 4.7 7.6 3.6 6 5c-1.9 1.6-2.2 4.4-1.6 7.4.5 2.6 1 4.8 1.5 6.2.4 1.2 2.1 1.2 2.5-.1.4-1.3.6-3.3 1.1-4.4.4-.9 1.6-.9 2 0 .5 1.1.7 3.1 1.1 4.4.4 1.3 2.1 1.3 2.5.1.5-1.4 1-3.6 1.5-6.2.6-3 .3-5.8-1.6-7.4-1.6-1.4-4.4-.3-6 1.1z"/>',
+  food: '<path d="M4.5 3v6.5a2.8 2.8 0 002.8 2.8V21M7.3 3v6.2M10.1 3v6.2M17.4 3c-1.4 0-2.4 2.1-2.4 5.2 0 2 .8 3.4 1.9 3.6V21"/>',
+  consult:
+    '<path d="M21 14.6a2 2 0 01-2 2H8.2L3.4 20.4V5.4a2 2 0 012-2h13.6a2 2 0 012 2z"/><path d="M8 9.4h8M8 12.6h5"/>',
+  fitness:
+    '<path d="M4 9v6M7 6.6v10.8M17 6.6v10.8M20 9v6M7 12h10"/>',
+  car: '<path d="M4.6 16.4v2.2a1 1 0 01-1 1H2.8a1 1 0 01-1-1v-2.2M22.2 16.4v2.2a1 1 0 01-1 1h-.8a1 1 0 01-1-1v-2.2"/><path d="M1.8 16.4v-4l2.1-5.1a2 2 0 011.9-1.3h12.4a2 2 0 011.9 1.3l2.1 5.1v4z"/><circle cx="6.4" cy="13.4" r="1.1"/><circle cx="17.6" cy="13.4" r="1.1"/>',
+  default: '<path d="M12 3.2l2.6 6.2 6.7.5-5.1 4.4 1.6 6.5L12 17.4 6.2 20.8l1.6-6.5-5.1-4.4 6.7-.5z"/>',
+};
+
+/** Serbian + English keyword → icon key. First match wins, order matters. */
+const ICON_KEYWORDS: [string[], keyof typeof ICON_PATHS][] = [
+  [['šiša', 'sisa', 'cut', 'trim', 'barber', 'brij', 'shave', 'makaz'], 'cut'],
+  [['boj', 'farb', 'color', 'colour', 'pramen', 'highlight', 'dye', 'balaya'], 'color'],
+  [['fenir', 'stiliz', 'styl', 'blow', 'dry', 'brush', 'frizur', 'updo'], 'dry'],
+  [['tretman', 'treat', 'nega', 'care', 'mask', 'hidrat', 'keratin', 'spa', 'massa', 'masaž'], 'care'],
+  [['venč', 'venc', 'wedding', 'bridal', 'svečan', 'svecan', 'event', 'occasion', 'party'], 'event'],
+  [['čišć', 'cisc', 'clean', 'pran', 'wash', 'higij', 'hygien'], 'clean'],
+  [['poprav', 'repair', 'servis', 'service', 'monta', 'install', 'fix', 'ugrad'], 'repair'],
+  [['zub', 'tooth', 'dental', 'implant', 'orto', 'protet'], 'tooth'],
+  [['hran', 'food', 'menu', 'jelo', 'pizz', 'kuhin', 'dish', 'catering', 'kafa', 'coffee'], 'food'],
+  [['konsult', 'consult', 'savet', 'advice', 'plan', 'analiz', 'audit'], 'consult'],
+  [['tren', 'train', 'fitnes', 'fitness', 'gym', 'vežb', 'workout'], 'fitness'],
+  [['auto', 'car', 'vozil', 'vehicle', 'gum', 'tyre', 'tire'], 'car'],
+];
+
+function iconFor(title: string): string {
+  const t = title.toLowerCase();
+  for (const [words, key] of ICON_KEYWORDS) {
+    if (words.some((w) => t.includes(w))) return ICON_PATHS[key] ?? ICON_PATHS.default!;
+  }
+  return ICON_PATHS.default!;
+}
+
+function svgIcon(title: string): string {
+  return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconFor(title)}</svg>`;
+}
+
+/** Up to two initials for the hero lettermark. */
+function monogramFor(name: string): string {
+  const words = name
+    .replace(/[^\p{L}\p{N} ]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 0) return '·';
+  const first = words[0]![0] ?? '';
+  const second = words.length > 1 ? (words[1]![0] ?? '') : '';
+  return (first + second).toUpperCase();
+}
+
+/**
+ * Accent ticker between the hero and the services grid. Real service names
+ * only — this is a density and rhythm device, not invented content.
+ */
+function renderMarquee(lead: Lead, copy: PreviewCopy, strings: Strings): string {
+  const items = copy.services.map((s) => s.title);
+  if (lead.region) items.push(lead.region);
+  if (lead.rating != null) items.push(`★ ${lead.rating.toFixed(1)}`);
+  if (items.length === 0) return '';
+  const seq = items.map((t) => `<span>${escapeHtml(t)}</span>`).join('<i aria-hidden="true">✦</i>');
+  // Each row translates -100% of its own width, so the loop is only seamless
+  // while the remaining rows still cover the viewport. Four copies keeps the
+  // strip filled on wide screens even when the service names are short.
+  const row = `<div class="tick-row">${seq}</div>`;
+  return row.repeat(4);
+}
+
+/**
+ * Splits the About copy into a lead sentence and the remainder. The lead is set
+ * as a pull quote — using the hero subheadline there instead would print the
+ * same sentence twice on one page, which is the fastest tell of a generated
+ * site.
+ */
+function splitAbout(about: string): { lead: string; body: string } {
+  const m = about.match(/^(.+?[.!?])\s+(.*)$/s);
+  if (!m || m[1]!.length < 24 || m[2]!.trim().length < 40) return { lead: '', body: about };
+  return { lead: m[1]!.trim(), body: m[2]!.trim() };
+}
+
+/** Stat row built only from real Places data — no invented numbers. */
+function renderStats(lead: Lead, copy: PreviewCopy, strings: Strings): string {
+  const cells: string[] = [];
+  if (lead.rating != null) {
+    cells.push(`<div><b>${lead.rating.toFixed(1)}</b><span>${strings.ratingShort}</span></div>`);
+  }
+  if (lead.reviewCount) {
+    cells.push(`<div><b>${lead.reviewCount}</b><span>${strings.reviewsShort}</span></div>`);
+  }
+  const open = (lead.openingHours ?? []).filter((l) => {
+    const hours = l.split('|')[1] ?? '';
+    return hours !== '' && !/zatvoreno|closed/i.test(hours);
+  }).length;
+  if (open > 0) cells.push(`<div><b>${open}</b><span>${strings.daysOpen}</span></div>`);
+  if (copy.services.length > 0) {
+    cells.push(`<div><b>${copy.services.length}</b><span>${strings.servicesShort}</span></div>`);
+  }
+  if (cells.length === 0) return '';
+  return cells.join('');
+}
+
+/**
+ * Hero visual. With a curated niche image it's a photo panel; without one it's
+ * a built composition (arch, lettermark, rating chip) — never an empty box.
+ * WEB-STANDARD §8.1.
+ */
+function renderHeroPanel(lead: Lead, imageUrl: string | null, strings: Strings): string {
+  const chip =
+    lead.rating != null
+      ? `<div class="chip"><b>★ ${lead.rating.toFixed(1)}</b><span>${lead.reviewCount ?? 0} ${strings.reviewsShort}</span></div>`
+      : '';
+  if (imageUrl) {
+    return `<div class="panel has-photo"><div class="photo" role="img" aria-label="${escapeHtml(lead.name)}"></div>${chip}</div>`;
+  }
+  return `<div class="panel"><div class="arch"><span class="mono">${escapeHtml(monogramFor(lead.name))}</span></div>${chip}<span class="tagchip">${escapeHtml(lead.region || strings.localBadge)}</span></div>`;
 }
 
 function renderServices(templateId: TemplateId, copy: PreviewCopy): string {
@@ -117,7 +288,7 @@ function renderServices(templateId: TemplateId, copy: PreviewCopy): string {
         case 'bold-dark':
           return `<div class="svc"><span class="num">${n}</span><h3>${title}</h3><p>${blurb}</p></div>`;
         case 'warm-local':
-          return `<div class="svc"><span class="ico">✦</span><div><h3>${title}</h3><p>${blurb}</p></div></div>`;
+          return `<article class="svc"><span class="icowrap">${svgIcon(svc.title)}</span><h3>${title}</h3><p>${blurb}</p><span class="svc-n">${n}</span></article>`;
         case 'corporate-clean':
           return `<div class="svc"><span class="chk">✓</span><div><h3>${title}</h3><p>${blurb}</p></div></div>`;
       }
@@ -229,12 +400,26 @@ export function renderPreview(params: RenderParams): string {
     // Sections with no real data are dropped entirely (WEB-STANDARD §1.4).
     hoursHidden: lead.openingHours?.length ? '' : 'hidden',
     mapQuery: encodeURIComponent(`${lead.name} ${lead.address}`),
-    // WEB-STANDARD §8.1: never ship an empty placeholder. With no image the
-    // hero becomes type-led and the visual element is omitted entirely.
-    heroVisual: heroImageUrl
-      ? `<div class="hero-visual" role="img" aria-label="${escapeHtml(lead.name)}"></div>`
-      : '',
+    // WEB-STANDARD §8.1: never an empty placeholder. Without a curated image
+    // the hero panel is a built composition, not a grey box.
+    heroVisual: renderHeroPanel(lead, heroImageUrl, strings),
     heroMode: heroImageUrl ? 'has-visual' : 'type-led',
+    marqueeHtml: renderMarquee(lead, copy, strings),
+    marqueeHidden: copy.services.length === 0 ? 'hidden' : '',
+    statsHtml: renderStats(lead, copy, strings),
+    statsHidden: renderStats(lead, copy, strings) === '' ? 'hidden' : '',
+    monogram: escapeHtml(monogramFor(lead.name)),
+    directionsLabel: strings.directions,
+    ctaBandTitle: strings.ctaBandTitle,
+    ctaBandSub: strings.ctaBandSub,
+    scrollCue: strings.scrollCue,
+    reviewsShort: strings.reviewsShort,
+    eyeServices: strings.eyeServices,
+    eyeAbout: strings.eyeAbout,
+    eyeVisit: strings.eyeVisit,
+    aboutLead: escapeHtml(splitAbout(copy.about).lead),
+    aboutLeadHidden: splitAbout(copy.about).lead === '' ? 'hidden' : '',
+    aboutBody: escapeHtml(splitAbout(copy.about).body),
     phone: escapeHtml(phone || '—'),
     phoneHref,
     address: escapeHtml(lead.address),
