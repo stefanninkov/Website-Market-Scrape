@@ -12,13 +12,14 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_MODEL } from '../lib/anthropic.js';
 import { z } from 'zod';
 import { anthropicCostUsd, type AgentCaps, type AgentRunResult } from '@wms/shared';
 import type { ToolContext, ToolRegistry } from './tools/registry.js';
 import { toolResultText, truncateForLog } from './tools/registry.js';
 
-/** SPEC §2 / CLAUDE.md: the one model used for generation in this project. */
-export const AGENT_MODEL = 'claude-sonnet-4-6';
+/** SPEC §2 / CLAUDE.md: claude-sonnet-4-6, shared with the v2 workers. */
+export { ANTHROPIC_MODEL as AGENT_MODEL } from '../lib/anthropic.js';
 
 /** Max tokens per individual model turn. Not a run budget — that's caps.maxTokens. */
 const MAX_TOKENS_PER_TURN = 4096;
@@ -143,7 +144,7 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
     let response: Anthropic.Message;
     try {
       response = await client.messages.create({
-        model: AGENT_MODEL,
+        model: ANTHROPIC_MODEL,
         max_tokens: MAX_TOKENS_PER_TURN,
         system,
         tools: tools.specs(),

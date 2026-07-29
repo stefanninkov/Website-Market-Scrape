@@ -11,10 +11,11 @@
  */
 
 import { Timestamp, type DocumentReference, type Firestore } from 'firebase-admin/firestore';
-import { leadPath, scoreSite, type Job, type Lead } from '@wms/shared';
+import { COLLECTIONS, leadPath, scoreSite, type Job, type Lead } from '@wms/shared';
 import type { JobHandler } from '../lib/queue.js';
 import type { SiteAnalyzer } from '../lib/analyzer.js';
 import type { PageSpeedClient } from '../lib/pagespeed.js';
+import { readAgentsConfig } from '../agent/runs.js';
 
 export function makeAnalyzeHandler(
   db: Firestore,
@@ -64,6 +65,22 @@ export function makeAnalyzeHandler(
       }
 
       await leadRef.update(update);
+
+      // Auto-qualify (AGENTS.md §4 trigger). Analysis only — this enqueues a
+      // job that decides whether the lead is worth Stefan's time. It sends
+      // nothing. A locked lead is skipped here as well as inside the handler.
+      const cfg = await readAgentsConfig(db);
+      if (cfg.enabled && cfg.qualifier && cfg.autoQualifyOnAnalyze && !lead.agent?.locked) {
+        await db.collection(COLLECTIONS.jobs).add({
+          type: 'qualify',
+          payload: { placeId },
+          status: 'queued',
+          createdAt: Timestamp.now(),
+          startedAt: null,
+          finishedAt: null,
+          error: null,
+        });
+      }
     } catch (err) {
       // Analyzer blew up (e.g. browser launch): mark the lead's analysis failed
       // and let the queue mark the job failed too.

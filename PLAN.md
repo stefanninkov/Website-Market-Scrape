@@ -101,19 +101,19 @@ previews are going out this week, in which case swap them.
 
 Spec: AGENTS.md §1 to §4, §8, §10.
 
-- [ ] `workers/src/agent/loop.ts`: bounded tool-use loop (max steps, max tokens, max seconds), zod-validated output, one retry on validation failure, structured `AgentRunResult`
-- [ ] Tool framework in `workers/src/agent/tools/`: typed schema, model-facing description, cost profile per tool
-- [ ] Tools: `read_lead`, `fetch_page` (reuses `lib/robots.ts`, blocks private IPs, 10s / 2MB caps), `screenshot_page` (375 and 1440), `places_details`, `web_search` (max 3 per run), `run_analyzer`
-- [ ] `agentRuns/{runId}` + `steps` subcollection, every model turn and tool call logged with 4KB summaries
-- [ ] Extend `lib/budget.ts` with an `agent` counter, real token usage, per-run / per-day / per-month levels
-- [ ] `config/agents` doc with the global kill switch, per-agent toggles, per-run caps
-- [ ] Sixth pm2 process `wms-agent`, concurrency 1, consumes `qualify` jobs
-- [ ] **A1 Qualifier** per AGENTS.md §4: the six weighted signals, `Qualification` output schema, `insufficient_data` as a first-class verdict, evidence required on every claim
-- [ ] Auto-enqueue `qualify` after `analyze` when `agents.autoQualifyOnAnalyze` is on
+- [x] `workers/src/agent/loop.ts`: bounded tool-use loop (max steps, max tokens, max seconds), zod-validated output, one retry on validation failure, structured `AgentRunResult`
+- [x] Tool framework in `workers/src/agent/tools/`: typed schema, model-facing description, cost profile per tool
+- [x] Tools: `read_lead`, `fetch_page` (reuses `lib/robots.ts`, blocks private IPs, 10s / 2MB caps), `screenshot_page` (375 and 1440), `places_details`, `web_search` (max 3 per run), `run_analyzer`
+- [x] `agentRuns/{runId}` + `steps` subcollection, every model turn and tool call logged with 4KB summaries
+- [x] Extend `lib/budget.ts` with an `agent` counter, real token usage, per-run / per-day / per-month levels
+- [x] `config/agents` doc with the global kill switch, per-agent toggles, per-run caps
+- [x] Sixth pm2 process `wms-agent`, concurrency 1, consumes `qualify` jobs
+- [x] **A1 Qualifier** per AGENTS.md §4: the six weighted signals, `Qualification` output schema, `insufficient_data` as a first-class verdict, evidence required on every claim
+- [x] Auto-enqueue `qualify` after `analyze` when `agents.autoQualifyOnAnalyze` is on
 - [ ] Leads page: `fitScore` column and sort, verdict chip (qualified / discard / needs a look), rationale in the drawer, filter by verdict
 - [ ] `/agent` page: run feed, step timeline, kill switch, per-agent toggles, cost meter with cost-per-qualified-lead
-- [ ] Safety rails as code, not prompt: no tool sends email, writes config, or deletes anything (AGENTS.md §10)
-- [ ] Unit tests: cap enforcement on all three axes, schema rejection of evidence-free claims, kill switch stops new runs within one poll
+- [x] Safety rails as code, not prompt: no tool sends email, writes config, or deletes anything (AGENTS.md §10)
+- [x] Unit tests: cap enforcement on all three axes, schema rejection of evidence-free claims, kill switch stops new runs within one poll
 
 **Milestone: a 400-lead sweep becomes roughly 40 qualified leads with a readable reason on each, and every run is auditable.**
 

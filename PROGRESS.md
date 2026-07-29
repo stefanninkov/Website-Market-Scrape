@@ -331,3 +331,39 @@ Entry template:
 - `/p/demo-*` slugs are throwaway comparison copies not attached to any lead, so `servePreview` won't log views for them (the lead lookup by slug finds nothing). Delete once a direction is picked.
 - Preview HTML is static in Storage: editing a template does not regenerate existing previews, they must be re-published. Combined with `loadTemplate()`'s process-lifetime cache, a template change needs both a worker restart and a regeneration.
 - Stefan's standing feedback is that the pages still read generic. Booking and the niche-driven page shape address the structural half; the AI copy prompt is still unchanged and remains the open half.
+
+---
+
+## 2026-07-29 (4) — Phase 7: agent foundation + A1 qualifier
+
+Built in the order Stefan asked for: loop, tool framework, run logging and the Agent page before the qualifier itself.
+
+**Done:**
+- `agent/loop.ts` — AGENTS.md §2.1. All three bounds checked together before every model turn. Submission is a tool rather than free text, so the final answer arrives already shaped and the model cannot end a run by writing prose. Output zod-validated with one retry carrying the errors back.
+- `agent/tools/registry.ts` — the enforcement point. A tool the registry does not hold cannot be called; per-run call caps are counted here, not left to the model; each tool declares `writes`.
+- `agent/tools/url-guard.ts` — refuses non-http schemes and private ranges **after** DNS resolution.
+- Tools: `read_lead`, `fetch_page`, `screenshot_page`, `places_details`, `web_search`, `run_analyzer`.
+- `agent/runs.ts` — opens the run doc immediately and appends steps as they happen, so the feed is readable mid-run. Lead state is never written here.
+- `shared`: agent types and schemas, `config/agents` defaults, the three agent budget levels.
+- `agent/qualifier.ts` + `handlers/qualify.ts` — A1. Refuse early, run, then write lead state in one transaction only on `done`.
+- Sixth pm2 process `wms-agent`. Auto-enqueue `qualify` after `analyze`.
+- `/agent` page: run feed, expandable step timeline, kill switch, per-agent toggles, budget field, cost-per-qualified-lead.
+- 20 unit tests, all passing.
+
+**Decisions:**
+- **Agent spend lands on the anthropic counter as well as the agent counters.** It is the same bill, so the existing guard has to see it. The agent counters sit on top for attribution and cost-per-qualified-lead.
+- **The monthly agent limit lives only in `config/agents`**; `config/apiBudget` carries only the spend. One source of truth for the number.
+- **Daily agent allowance is derived as monthly / 30.** AGENTS.md §8.4 asks for a daily soft warning at 80% but names no daily limit. It only warns, never blocks.
+- **The agent budget blocks at 100%, not the 90% the Places/Anthropic guards use.** Agent spend is discretionary and a refused run costs nothing but a `blocked_budget` job.
+- Added `createRawAnthropic` beside the existing single-shot `AnthropicClient` rather than widening it, so the v2 workers are untouched.
+
+**Deviations from SPEC:** none.
+
+**New dependencies:** none. The loop uses the `@anthropic-ai/sdk`, `zod` and `playwright` already present.
+
+**Known issues / next up:**
+- **`web_search` has no provider wired.** It needs an API key Stefan has not chosen. The tool returns "not configured" and tells the model to continue and lower its confidence, so runs degrade rather than fail.
+- **The qualifier has not been run against a live lead.** Everything is verified by typecheck and unit tests against a fake client; no real Anthropic tool-use round trip has happened yet. The PLAN milestone is not met until it has.
+- **`/agent` has not been visually verified at 375px.** It is written to the DESIGN.md tokens and mobile rules and it builds, but CLAUDE.md requires testing both breakpoints, so treat the page as unverified.
+- The Leads page `fitScore` column, verdict chip and verdict filter are still unbuilt — that PLAN item is deliberately left unchecked.
+- `PREVIEW-SYSTEM.md` is missing from the repo but referenced 21 times by the installed docs. Phase 8 and Phase 10 cannot start without it.

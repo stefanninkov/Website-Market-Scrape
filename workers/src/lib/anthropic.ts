@@ -35,6 +35,16 @@ export class AnthropicApiError extends Error {
   }
 }
 
+/**
+ * Raw SDK handle for the agent loop, which needs multi-turn tool use and so
+ * cannot go through the single-shot `generate` interface above. Kept separate
+ * rather than widening AnthropicClient, so the v2 workers are untouched.
+ */
+export function createRawAnthropic(apiKey: string): Anthropic {
+  if (!apiKey) throw new AnthropicApiError('ANTHROPIC_API_KEY is not set (workers/.env).');
+  return new Anthropic({ apiKey });
+}
+
 export function createAnthropicClient(apiKey: string): AnthropicClient {
   // Lazily constructed so a missing key fails the job, not worker startup.
   let sdk: Anthropic | null = null;
