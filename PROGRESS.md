@@ -273,3 +273,29 @@ Entry template:
 - Only `warm-local` has been rebuilt. `minimal-light`, `bold-dark` and `corporate-clean` are still the old thin versions.
 - The AI copy prompt is unchanged and still writes generically ("verujemo da svaka kosa ima svoju priču"). WEB-STANDARD §11 wants concrete over poetic; the prompt doesn't enforce it yet.
 - `PLAYWRIGHT_CHROMIUM_PATH` must be set for the preview worker's OG-image step wherever the bundled Playwright build doesn't match the installed browser.
+
+---
+
+## 2026-07-29 (2) — booking module + niche-driven page shape
+
+**Done:**
+- `nicheProfile()` in `render.ts` routes a niche to one of three primary actions from WEB-STANDARD §10 — `booking` (salons, barbers, clinics, physio, vets, tattoo), `table` (restaurants, cafés, konobe, bakeries), `call` (trades, emergency, towing, auto repair) — and picks the accent within warm-local's warm family. The page shape now changes by business type instead of every lead getting the same page with different words.
+- Booking module: service (or party size) → date → time → contact. Day strip covers the next 14 days; slots are generated in the browser from the lead's real Google `openingHours`.
+- CTA consolidation: hero button, nav entry and the mobile call bar all point at the module when it exists, so the page carries one CTA idea (WEB-STANDARD §11) instead of "call us" competing with "book".
+- WEB-STANDARD §10.1 added: the CTA column is a module the page must carry, not a button label, plus the rules the module has to satisfy.
+
+**Verified** by driving the flow in a real browser, not by inspection: Serbian weekday names via `Intl`, Sunday disabled and labelled `Zatvoreno` from real hours, slots 12:00–19:30 against real 12:00–20:00 hours, empty submit blocked with the error, confirmation panel correct, zero page errors, 0 horizontal overflow at 320–1920.
+
+**Decisions:**
+- **A preview must not imply a booking reached the business.** Previews carry a disclaimer and are reachable by real customers; a confirmation that read like a real booking would leave someone waiting on an appointment nobody received. The form confirms the *selection*, states plainly nothing was sent, and hands off to the phone number.
+- **No opening hours → no module.** Inventing availability breaches WEB-STANDARD §11. Dropping the section is correct; a booking form with made-up slots is worse than no booking form.
+- Same-day slots keep a 60-minute lead time — offering a slot five minutes out advertises that nothing behind the form is real.
+
+**Deviations from SPEC:** SPEC §8 doesn't describe a booking module. WEB-STANDARD §10 (source-of-truth doc #4, authoritative for websites) names "Book / Call" as the primary CTA for salons and "Book appointment" for clinics, so this implements an existing rule rather than inventing a feature. SPEC §8 should gain a line pointing at WEB-STANDARD §10.1.
+
+**New dependencies:** none. The module is vanilla JS inside the template — no date-picker library.
+
+**Known issues / next up:**
+- **`loadTemplate()` caches templates for the process lifetime.** A stale preview-worker started before a template edit silently served the old template and produced a preview with no booking section; it took a byte-count check on the deployed file to catch it. Template edits require a worker restart — worth a note in the deploy script, or dropping the cache in dev.
+- Slot step is a flat 30 min for every service. Real salons vary by service (a cut is not a balayage); the copy contract has no duration field.
+- Booking exists only in `warm-local`. `minimal-light`, `bold-dark` and `corporate-clean` are still the old thin versions.
