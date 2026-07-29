@@ -76,6 +76,16 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    to: '/agent',
+    label: 'Agent',
+    icon: (
+      <svg viewBox="0 0 24 24" {...iconProps}>
+        <rect x="4" y="7" width="16" height="12" rx="3" />
+        <path d="M12 3v4M9 13h.01M15 13h.01M9.5 16.5h5" />
+      </svg>
+    ),
+  },
+  {
     to: '/settings',
     label: 'Settings',
     icon: (

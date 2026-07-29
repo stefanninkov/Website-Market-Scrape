@@ -18,8 +18,12 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import {
+  AGENT_STEPS_SUBCOLLECTION,
   COLLECTIONS,
   CONFIG_DOCS,
+  type AgentRun,
+  type AgentStep,
+  type AgentsConfig,
   type ApiBudget,
   type AppEvent,
   type GmailConfig,
@@ -73,6 +77,31 @@ export const toneGuideDoc = (): DocumentReference<ToneGuide> =>
 
 export const gmailDoc = (): DocumentReference<GmailConfig> =>
   doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.gmail).withConverter(converter<GmailConfig>());
+
+export const agentRunsCol = (): CollectionReference<AgentRun> =>
+  collection(requireDb(), COLLECTIONS.agentRuns).withConverter(converter<AgentRun>());
+
+export const agentRunDoc = (runId: string): DocumentReference<AgentRun> =>
+  doc(requireDb(), COLLECTIONS.agentRuns, runId).withConverter(converter<AgentRun>());
+
+export const agentStepsQuery = (runId: string): Query<AgentStep> =>
+  query(
+    collection(
+      requireDb(),
+      COLLECTIONS.agentRuns,
+      runId,
+      AGENT_STEPS_SUBCOLLECTION,
+    ).withConverter(converter<AgentStep>()),
+  );
+
+/** Newest runs first — the Agent page feed. */
+export const recentAgentRunsQuery = (max = 50): Query<AgentRun> =>
+  query(agentRunsCol(), orderBy('startedAt', 'desc'), limit(max));
+
+export const agentsConfigDoc = (): DocumentReference<AgentsConfig> =>
+  doc(requireDb(), COLLECTIONS.config, CONFIG_DOCS.agents).withConverter(
+    converter<AgentsConfig>(),
+  );
 
 export const eventsCol = (): CollectionReference<AppEvent> =>
   collection(requireDb(), COLLECTIONS.events).withConverter(converter<AppEvent>());

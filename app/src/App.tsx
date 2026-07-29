@@ -5,6 +5,7 @@ import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import Sweeps from './pages/Sweeps';
 import Leads from './pages/Leads';
+import Agent from './pages/Agent';
 import Pipeline from './pages/Pipeline';
 import Settings from './pages/Settings';
 import SignIn from './pages/SignIn';
@@ -32,6 +33,7 @@ function Gate() {
           <Route path="sweeps" element={<Sweeps />} />
           <Route path="leads" element={<Leads />} />
           <Route path="pipeline" element={<Pipeline />} />
+          <Route path="agent" element={<Agent />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

@@ -479,6 +479,10 @@ const EVENT_LABEL: Record<AppEvent['type'], string> = {
   reply: 'Reply received',
   bounce: 'Bounced',
   preview_view: 'Preview viewed',
+  qualified: 'Qualified by agent',
+  discarded: 'Discarded by agent',
+  agent_run: 'Agent run',
+  reply_classified: 'Reply classified',
 };
 
 function EventTimeline({ leadId }: { leadId: string }) {
