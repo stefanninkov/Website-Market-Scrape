@@ -27,7 +27,7 @@
   --line:rgba(245,245,244,.14); --r:4px; --rl:6px;
 }
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
-body{font-family:'Archivo',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:118px;overflow-x:hidden}
+body{font-family:'Archivo',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:0;overflow-x:hidden}
 h1,h2,h3,h4{font-weight:800;letter-spacing:-.03em;text-transform:uppercase;line-height:1.02}
 a{color:inherit}
 img,svg{max-width:100%}
@@ -187,7 +187,7 @@ section{padding:64px 0;scroll-margin-top:74px}
 .ctaband .cta{background:#0A0A0B;color:var(--accent)}
 @media(hover:hover){.ctaband .cta:hover{filter:none;background:#1B1B1F}}
 
-footer{background:#050506;color:var(--muted);padding:50px 0 38px;border-top:1px solid var(--line)}
+footer{background:#050506;color:var(--muted);padding:50px 0 156px;border-top:1px solid var(--line)}
 .fgrid{display:grid;gap:28px}
 footer h4{color:var(--ink);font-size:1.02rem;margin-bottom:10px}
 footer a{color:var(--ink);text-decoration:none}
@@ -208,7 +208,7 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
   .services{grid-template-columns:1fr 1fr}
 }
 @media(min-width:900px){
-  body{padding-bottom:52px}
+  footer{padding-bottom:90px}
   .callbar{display:none}
   .nav nav,.nav-cta{display:flex}
   .wrap{padding:0 40px}
