@@ -299,3 +299,35 @@ Entry template:
 - **`loadTemplate()` caches templates for the process lifetime.** A stale preview-worker started before a template edit silently served the old template and produced a preview with no booking section; it took a byte-count check on the deployed file to catch it. Template edits require a worker restart — worth a note in the deploy script, or dropping the cache in dev.
 - Slot step is a flat 30 min for every service. Real salons vary by service (a cut is not a balayage); the copy contract has no duration field.
 - Booking exists only in `warm-local`. `minimal-light`, `bold-dark` and `corporate-clean` are still the old thin versions.
+
+---
+
+## 2026-07-29 (3) — booking + reviews across all four templates
+
+**Done:**
+- Rebuilt `minimal-light`, `bold-dark` and `corporate-clean`. All four templates now share one page structure and one booking implementation, differing only in visual language per DESIGN.md §The 4 variants:
+  - `minimal-light` — white, ink `#101318`, accent `#2D5BFF`, dot-grid hero, numbered services on thin dividers.
+  - `bold-dark` — `#0A0A0B`, Archivo, uppercase headline, niche accent via `boldAccentForNiche`, diagonal hero divider, bordered cards with big index numbers.
+  - `corporate-clean` — navy `#12233D` + teal `#1F8A70`, split hero, bordered service rows, conservative spacing.
+- Booking behaviour moved out of `warm-local.html` into `BOOKING_SCRIPT` in `render.ts` — one implementation shipped with the module, templates supply only CSS. Four copies of that script would have drifted the same way the service markup already had.
+- `accentFor(templateId, niche)` — only `warm-local` varies accent by niche; the rest carry their DESIGN.md brand colour.
+- Reviews: the rating band is now a reviews section — heading, stars, score, "na osnovu N recenzija", and a link to the business's own Google reviews page (`search.google.com/local/reviews?placeid=`). The stat grid no longer repeats the rating and review count stated directly above it; it carries days open, service count, region and category instead.
+- Published comparison previews at `/p/demo-{templateId}` for all four, same lead and copy, so only the design differs.
+
+**Verified** per template: renders with no unfilled slots, booking flow driven in a browser (service → day → slot → contact), 14 day buttons built from real opening hours with Sunday disabled, 0 horizontal overflow at 320–1920, no page errors. Storage objects re-read after upload to confirm each carries its own accent, the booking form and the reviews link.
+
+**Bugs found and fixed while rolling out:**
+- `renderServices()` emitted per-template markup that had already drifted: `minimal-light`'s CSS targeted `.num` while the markup emitted `.svc-n`, so its service numbers had been invisible. All templates now share one markup shape and differentiate in CSS.
+- `corporate-clean` left an empty grey cell with 5 services in a 2-column bordered grid — the odd final card now spans the row.
+
+**Decisions:**
+- **Google review *text* is deliberately not embedded.** Two reasons: (1) `places.reviews` sits in a higher Places SKU than the Pro tier the details mask uses (`PLACES_DETAILS_USD` = $0.017), roughly doubling per-lead detail cost, and SPEC §5 mandates strict field masks; (2) it's the same rule family that already put "NEVER use Google Places photos" in SPEC §8 — Places reviews must be shown unmodified with author attribution, and showing only the favourable ones is the specific thing that isn't allowed, plus previews are static Storage files that live indefinitely, past the caching limits. Linking out keeps reviews attributed, unfiltered and current at no extra cost. Flagged to Stefan as his call.
+
+**Deviations from SPEC:** none beyond the booking module already recorded in the previous entry.
+
+**New dependencies:** none.
+
+**Known issues / next up:**
+- `/p/demo-*` slugs are throwaway comparison copies not attached to any lead, so `servePreview` won't log views for them (the lead lookup by slug finds nothing). Delete once a direction is picked.
+- Preview HTML is static in Storage: editing a template does not regenerate existing previews, they must be re-published. Combined with `loadTemplate()`'s process-lifetime cache, a template change needs both a worker restart and a regeneration.
+- Stefan's standing feedback is that the pages still read generic. Booking and the niche-driven page shape address the structural half; the AI copy prompt is still unchanged and remains the open half.
