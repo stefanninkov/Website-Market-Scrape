@@ -24,7 +24,7 @@
 :root{
   --bg:#FBF7F0; --surface:#FFFDF9; --deep:#241B14; --deeper:#191209;
   --ink:#241B14; --muted:#6F6357;
-  --accent:#B8492A; --accent-dk:#93361D; --accent-soft:#F4E6DA;
+  --accent:{{nicheAccent}}; --accent-dk:{{nicheAccentDark}}; --accent-soft:#F4E6DA;
   --line:rgba(36,27,20,.13); --line-dk:rgba(246,239,230,.16);
   --r:16px; --rl:24px;
 }
@@ -64,7 +64,7 @@ img,svg{max-width:100%}
 .proof .proof-rating b{color:#E8A33D}
 .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
 .cta{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:#FFF8F2;text-decoration:none;font-weight:600;padding:15px 28px;border-radius:999px;font-size:1rem;min-height:50px;
-  box-shadow:0 1px 2px rgba(0,0,0,.22),0 12px 26px rgba(184,73,42,.32);transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}
+  box-shadow:0 1px 2px rgba(36,27,20,.13),0 12px 26px rgba(36,27,20,.16);transition:transform .16s cubic-bezier(.2,0,0,1),box-shadow .16s}
 .cta::after{content:'→';transition:transform .16s cubic-bezier(.2,0,0,1)}
 .cta.ghost{background:rgba(246,239,230,.06);color:#F6EFE6;border:1px solid var(--line-dk);box-shadow:none}
 .cta.ghost::after{content:''}
@@ -153,6 +153,60 @@ section{padding:64px 0;scroll-margin-top:72px}
 .ctaband p{margin-top:12px;color:rgba(255,243,234,.82);max-width:42ch}
 .ctaband .cta{background:#FFF8F2;color:var(--accent-dk);box-shadow:0 10px 28px rgba(0,0,0,.20)}
 
+
+/* ---------- booking ---------- */
+.booksec{background:linear-gradient(180deg,var(--bg) 0%,#F6F0E6 100%)}
+.bookgrid{display:grid;gap:18px;min-width:0}
+.bookform,.booksum{min-width:0}
+.bookform{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:24px 20px}
+/* fieldset defaults to min-width:min-content, which stops the day
+   scroller from shrinking and forces the whole page wide. */
+.bkstep{border:0;margin-bottom:26px;min-width:0}
+.bkstep:last-of-type{margin-bottom:20px}
+.bkstep legend{display:flex;align-items:center;gap:11px;font-family:'Fraunces',serif;font-size:1.02rem;font-weight:600;letter-spacing:-.01em;margin-bottom:14px;padding:0}
+.bkn{flex:none;width:25px;height:25px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:'Inter',sans-serif;font-size:.76rem;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip-opt{font:inherit;font-size:.9rem;font-weight:500;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:11px 17px;min-height:44px;cursor:pointer;transition:background .14s,border-color .14s,color .14s}
+.chip-opt[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#FFF8F2}
+.chip-opt:disabled{opacity:.4;cursor:not-allowed}
+@media(hover:hover){.chip-opt:not(:disabled):not([aria-checked="true"]):hover{border-color:var(--accent);color:var(--accent)}}
+.days{display:flex;gap:9px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.day{flex:none;font:inherit;width:66px;padding:10px 6px;border:1px solid var(--line);border-radius:13px;background:var(--bg);cursor:pointer;display:grid;gap:1px;text-align:center;min-height:66px;transition:background .14s,border-color .14s,color .14s}
+.day small{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.day b{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:600;line-height:1.15}
+.day i{font-style:normal;font-size:.63rem;color:var(--muted)}
+.day[aria-checked="true"]{background:var(--accent);border-color:var(--accent);color:#FFF8F2}
+.day[aria-checked="true"] small,.day[aria-checked="true"] i{color:rgba(255,248,242,.82)}
+.day:disabled{opacity:.38;cursor:not-allowed}
+.bkfields{display:grid;gap:13px}
+.bkfields label{display:grid;gap:6px;font-size:.71rem;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:500}
+.bkfields input{font:inherit;font-size:1rem;color:var(--ink);text-transform:none;letter-spacing:0;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:13px 15px;min-height:48px;width:100%}
+.bkfields input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.bkerr{color:#9B2C13;background:#FBE7E1;border:1px solid rgba(155,44,19,.22);border-radius:11px;padding:11px 14px;font-size:.88rem;margin-bottom:14px}
+.bookform>.cta{width:100%}
+.bkempty{color:var(--muted);font-size:.9rem;padding:4px 0}
+.booksum{background:var(--deep);color:#F6EFE6;border-radius:var(--rl);padding:24px;align-self:start;position:relative;overflow:hidden}
+.booksum::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(246,239,230,.10) 1px,transparent 1px);background-size:20px 20px;-webkit-mask-image:linear-gradient(200deg,#000,transparent 70%);mask-image:linear-gradient(200deg,#000,transparent 70%)}
+.booksum>*{position:relative}
+.booksum h3{font-size:1.06rem;margin-bottom:16px}
+.booksum dl{display:grid;gap:1px;background:var(--line-dk);border:1px solid var(--line-dk);border-radius:13px;overflow:hidden}
+.booksum dl>div{background:var(--deep);padding:13px 16px;display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.booksum dt{color:#BFAE9B;font-size:.71rem;text-transform:uppercase;letter-spacing:.13em}
+.booksum dd{font-weight:600;font-size:.94rem;text-align:right}
+.booksum-foot{margin-top:20px;padding-top:16px;border-top:1px solid var(--line-dk)}
+.booksum-foot .lbl{color:#BFAE9B}
+.booksum-foot .tel{color:#E8A33D;font-weight:600;font-size:1.24rem;text-decoration:none;letter-spacing:-.015em;display:inline-flex;align-items:center;min-height:44px}
+.bkdone{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:30px 24px;text-align:center}
+.bkdone .tickmark{width:52px;height:52px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 16px;font-size:1.5rem}
+.bkdone h3{font-size:1.3rem;letter-spacing:-.015em}
+.bkdone .recap{margin:18px auto;max-width:320px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:13px;overflow:hidden;text-align:left}
+.bkdone .recap>div{background:var(--bg);padding:12px 15px;display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.bkdone .recap dt{color:var(--muted);font-size:.71rem;text-transform:uppercase;letter-spacing:.13em}
+.bkdone .recap dd{font-weight:600;font-size:.93rem;text-align:right}
+.bkdone .note{color:var(--muted);font-size:.89rem;max-width:42ch;margin:0 auto 18px;line-height:1.6}
+.bkdone .row{display:flex;flex-wrap:wrap;gap:11px;justify-content:center}
+.bklink{font:inherit;font-size:.9rem;font-weight:600;color:var(--ink);background:none;border:1px solid var(--line);border-radius:999px;padding:13px 22px;min-height:46px;cursor:pointer}
+
 footer{background:var(--deeper);color:#C9BAA8;padding:52px 0 40px}
 .fgrid{display:grid;gap:30px}
 footer h4{font-family:'Fraunces',serif;color:#F6EFE6;font-size:1.16rem;margin-bottom:10px;font-weight:600}
@@ -186,6 +240,10 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
   .panel{margin-top:0;margin-left:auto;max-width:100%}
   .services{grid-template-columns:repeat(3,1fr);gap:18px}
   .visit{grid-template-columns:1.05fr .95fr;gap:22px}
+  .bookgrid{grid-template-columns:1.55fr .85fr;gap:24px;align-items:start}
+  .bookform{padding:32px 30px}
+  .bkfields{grid-template-columns:1fr 1fr;gap:16px}
+  .bookform>.cta{width:auto}
   .about-grid{grid-template-columns:1.55fr .85fr;gap:56px;align-items:start}
   .fgrid{grid-template-columns:1.5fr 1fr 1fr}
   .ctaband .wrap{display:flex;align-items:center;justify-content:space-between;gap:48px;padding-top:76px;padding-bottom:76px}
@@ -200,6 +258,7 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
 <header class="nav"><div class="wrap">
   <a class="brand" href="#top"><span class="bmark">{{monogram}}</span><span class="btext">{{businessName}}</span></a>
   <nav>
+    <a href="#booking" {{navBookHidden}}>{{navBook}}</a>
     <a href="#usluge">{{navServices}}</a>
     <a href="#o-nama">{{navAbout}}</a>
     <a href="#kontakt">{{navVisit}}</a>
@@ -214,7 +273,7 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
     <p class="lede">{{subheadline}}</p>
     {{proofStrip}}
     <div class="actions">
-      <a class="cta" href="{{phoneHref}}">{{ctaLabel}}</a>
+      <a class="cta" href="{{primaryCtaHref}}">{{primaryCtaLabel}}</a>
       <a class="cta ghost" href="#usluge">{{navServices}}</a>
     </div>
   </div>
@@ -222,6 +281,8 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
 </div></section>
 
 <div class="tick" {{marqueeHidden}} aria-hidden="true">{{marqueeHtml}}</div>
+
+{{bookingHtml}}
 
 <section id="usluge"><div class="wrap">
   <div class="sec-head">
@@ -276,7 +337,7 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
     <p>{{ctaBandSub}}</p>
   </div>
   <div class="actions">
-    <a class="cta" href="{{phoneHref}}">{{phone}}</a>
+    <a class="cta" href="{{primaryCtaHref}}">{{primaryCtaLabel}}</a>
   </div>
 </div></section>
 
@@ -298,8 +359,137 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
   <p class="fbot">© {{year}} {{businessName}} · {{disclaimer}}</p>
 </div></footer>
 
-<div class="callbar"><a href="{{phoneHref}}">{{ctaLabel}}</a></div>
+<div class="callbar"><a href="{{primaryCtaHref}}">{{primaryCtaLabel}}</a></div>
 <div class="brandbar" id="bb"><span>Concept by FlowDev</span><a href="{{calLink}}">Book a call</a><button aria-label="Close" onclick="sessionStorage.setItem('bb','1');document.getElementById('bb').style.display='none'">✕</button></div>
 <script>if(sessionStorage.getItem('bb')){document.getElementById('bb').style.display='none'}</script>
+
+<script>
+(function(){
+  var el=document.getElementById('bkCfg'); if(!el) return;
+  var cfg=JSON.parse(el.textContent);
+  var form=document.getElementById('bkForm'), grid=form.parentNode;
+  var optsBox=document.getElementById('bkOpts'), daysBox=document.getElementById('bkDays'),
+      slotsBox=document.getElementById('bkSlots'), sum=document.getElementById('bkSum'),
+      err=document.getElementById('bkErr');
+  var sel={opt:'',date:null,time:''};
+  var SLOT=30, LEAD=60; // minutes: slot step, and minimum notice for same-day
+
+  var wd=new Intl.DateTimeFormat(cfg.lang,{weekday:'short'});
+  var full=new Intl.DateTimeFormat(cfg.lang,{weekday:'long',day:'numeric',month:'long'});
+  var mon=new Intl.DateTimeFormat(cfg.lang,{month:'short'});
+
+  // openingHours is Monday-first; JS getDay() is Sunday-first.
+  function rangesFor(d){
+    var line=cfg.hours[(d.getDay()+6)%7]||'';
+    var v=line.split('|')[1]||'';
+    if(!v||v.toLowerCase()===String(cfg.closed).toLowerCase()) return [];
+    return v.split(',').map(function(r){
+      var m=r.match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+      return m?{a:+m[1]*60+ +m[2], b:+m[3]*60+ +m[4]}:null;
+    }).filter(Boolean);
+  }
+  function slotsFor(d){
+    var now=new Date(), today=d.toDateString()===now.toDateString();
+    var min=today?now.getHours()*60+now.getMinutes()+LEAD:-1, out=[];
+    rangesFor(d).forEach(function(r){
+      var end=r.b<=r.a?r.b+1440:r.b; // past-midnight close
+      for(var t=r.a;t<=end-SLOT;t+=SLOT){
+        if(t<=min) continue;
+        var h=Math.floor(t/60)%24;
+        out.push((h<10?'0':'')+h+':'+(t%60<10?'0':'')+(t%60));
+      }
+    });
+    return out;
+  }
+  function pad2(n){return (n<10?'0':'')+n}
+  function iso(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
+
+  function paintSummary(){
+    var rows='';
+    if(sel.opt) rows+='<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>';
+    if(sel.date) rows+='<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>';
+    if(sel.time) rows+='<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>';
+    sum.innerHTML=rows||'<div><dt>'+cfg.pick+'</dt></div>';
+  }
+  function lbl(k){
+    var legends=form.querySelectorAll('.bkstep legend');
+    return k==='date'?legends[1].textContent.replace(/^2/,''):legends[2].textContent.replace(/^3/,'');
+  }
+  function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+  function choose(box,btn){
+    [].forEach.call(box.querySelectorAll('[role=radio]'),function(b){b.setAttribute('aria-checked','false')});
+    btn.setAttribute('aria-checked','true');
+  }
+
+  optsBox.addEventListener('click',function(e){
+    var b=e.target.closest('.chip-opt'); if(!b) return;
+    sel.opt=b.dataset.val; choose(optsBox,b); paintSummary();
+  });
+
+  // next 14 days, closed days and fully-booked-out days disabled
+  var frag=document.createDocumentFragment(), firstOpen=null;
+  for(var i=0;i<14;i++){
+    var d=new Date(); d.setDate(d.getDate()+i); d.setHours(0,0,0,0);
+    var open=slotsFor(d).length>0;
+    var b=document.createElement('button');
+    b.type='button'; b.className='day'; b.setAttribute('role','radio');
+    b.setAttribute('aria-checked','false'); b.disabled=!open; b.dataset.iso=iso(d);
+    b.innerHTML='<small>'+esc(wd.format(d))+'</small><b>'+d.getDate()+'</b><i>'+
+      (open?esc(mon.format(d)):esc(cfg.closed))+'</i>';
+    if(open&&!firstOpen) firstOpen=b;
+    frag.appendChild(b);
+  }
+  daysBox.appendChild(frag);
+
+  function paintSlots(){
+    if(!sel.date){slotsBox.innerHTML='<p class="bkempty">'+cfg.pick+'</p>';return}
+    var list=slotsFor(sel.date);
+    if(!list.length){slotsBox.innerHTML='<p class="bkempty">'+cfg.noSlots+'</p>';return}
+    slotsBox.innerHTML=list.map(function(t){
+      return '<button type="button" class="chip-opt" role="radio" aria-checked="false" data-val="'+t+'">'+t+'</button>';
+    }).join('');
+  }
+  daysBox.addEventListener('click',function(e){
+    var b=e.target.closest('.day'); if(!b||b.disabled) return;
+    var p=b.dataset.iso.split('-');
+    sel.date=new Date(+p[0],+p[1]-1,+p[2]); sel.time='';
+    choose(daysBox,b); paintSlots(); paintSummary();
+  });
+  slotsBox.addEventListener('click',function(e){
+    var b=e.target.closest('.chip-opt'); if(!b) return;
+    sel.time=b.dataset.val; choose(slotsBox,b); paintSummary();
+  });
+
+  paintSlots(); paintSummary();
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=document.getElementById('bkName').value.trim(),
+        tel=document.getElementById('bkPhone').value.trim();
+    if(!sel.opt||!sel.date||!sel.time||!name||!tel){
+      err.textContent=cfg.err; err.hidden=false; err.scrollIntoView({block:'center'}); return;
+    }
+    err.hidden=true;
+    // Concept mockup: nothing is submitted anywhere. Saying otherwise would
+    // leave a real customer waiting on an appointment nobody received.
+    var done=document.createElement('div');
+    done.className='bkdone'; done.setAttribute('role','status');
+    done.innerHTML='<div class="tickmark">✓</div><h3>'+cfg.doneTitle+'</h3>'+
+      '<dl class="recap">'+
+        '<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>'+
+        '<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>'+
+        '<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>'+
+        '<div><dt>'+esc(name)+'</dt><dd>'+esc(tel)+'</dd></div>'+
+      '</dl>'+
+      '<p class="note">'+cfg.doneNote+'</p><div class="row">'+
+      (cfg.phone?'<a class="cta" href="tel:'+esc(cfg.phone.replace(/[^\d+]/g,''))+'">'+esc(cfg.phone)+'</a>':'')+
+      '<button type="button" class="bklink" id="bkBack">'+cfg.again+'</button></div>';
+    grid.replaceChildren(done);
+    done.scrollIntoView({block:'center',behavior:'smooth'});
+    document.getElementById('bkBack').addEventListener('click',function(){location.reload()});
+  });
+})();
+</script>
 </body>
 </html>

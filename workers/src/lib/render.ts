@@ -80,6 +80,30 @@ interface Strings {
   eyeServices: string;
   eyeAbout: string;
   eyeVisit: string;
+  // Booking module (WEB-STANDARD §10: "Book / Call" is the primary CTA for
+  // salons, clinics, physio and driving schools).
+  navBook: string;
+  eyeBook: string;
+  bookTitle: string;
+  bookTitleTable: string;
+  bookIntro: string;
+  bookService: string;
+  bookParty: string;
+  bookDate: string;
+  bookTime: string;
+  bookName: string;
+  bookPhone: string;
+  bookSubmit: string;
+  bookSubmitTable: string;
+  bookClosed: string;
+  bookNoSlots: string;
+  bookSummary: string;
+  bookPick: string;
+  bookDoneTitle: string;
+  bookDoneNote: string;
+  bookAgain: string;
+  bookErr: string;
+  bookGuests: string;
 }
 
 // SPEC §3: Serbian (latinica) for RS leads, English otherwise. Branding bar
@@ -110,6 +134,29 @@ function stringsFor(country: string): Strings {
       eyeServices: 'Šta radimo',
       eyeAbout: 'Ko smo',
       eyeVisit: 'Posetite nas',
+      navBook: 'Zakazivanje',
+      eyeBook: 'Slobodni termini',
+      bookTitle: 'Zakažite termin',
+      bookTitleTable: 'Rezervišite sto',
+      bookIntro: 'Izaberite uslugu, dan i vreme — termini prate stvarno radno vreme.',
+      bookService: 'Usluga',
+      bookParty: 'Broj gostiju',
+      bookDate: 'Datum',
+      bookTime: 'Vreme',
+      bookName: 'Ime i prezime',
+      bookPhone: 'Vaš telefon',
+      bookSubmit: 'Potvrdite termin',
+      bookSubmitTable: 'Potvrdite rezervaciju',
+      bookClosed: 'Zatvoreno',
+      bookNoSlots: 'Tog dana ne radimo.',
+      bookSummary: 'Vaš izbor',
+      bookPick: 'Još niste izabrali',
+      bookDoneTitle: 'Ovako bi izgledala potvrda',
+      bookDoneNote:
+        'Ovo je konceptni prikaz sajta — rezervacija nije nikome poslata. Pozovite nas da zaista zakažete.',
+      bookAgain: 'Izmenite izbor',
+      bookErr: 'Popunite sva polja pre potvrde.',
+      bookGuests: 'osoba',
       disclaimer:
         'Ovo je konceptni prikaz sajta, ne zvanična prezentacija ovog biznisa. Izradio FlowDev kao predlog.',
     };
@@ -138,9 +185,98 @@ function stringsFor(country: string): Strings {
     eyeServices: 'What we do',
     eyeAbout: 'Who we are',
     eyeVisit: 'Come and see us',
+    navBook: 'Booking',
+    eyeBook: 'Available slots',
+    bookTitle: 'Book an appointment',
+    bookTitleTable: 'Reserve a table',
+    bookIntro: 'Pick a service, a day and a time — slots follow the real opening hours.',
+    bookService: 'Service',
+    bookParty: 'Party size',
+    bookDate: 'Date',
+    bookTime: 'Time',
+    bookName: 'Full name',
+    bookPhone: 'Your phone',
+    bookSubmit: 'Confirm appointment',
+    bookSubmitTable: 'Confirm reservation',
+    bookClosed: 'Closed',
+    bookNoSlots: "We're closed that day.",
+    bookSummary: 'Your selection',
+    bookPick: 'Nothing selected yet',
+    bookDoneTitle: "Here's how the confirmation would look",
+    bookDoneNote:
+      'This is a concept mockup — nothing was sent to anyone. Call us to book for real.',
+    bookAgain: 'Change selection',
+    bookErr: 'Please complete every field first.',
+    bookGuests: 'guests',
     disclaimer:
       'This is a concept mockup, not the official website of this business. Built by FlowDev as a proposal.',
   };
+}
+
+/**
+ * What the visitor is actually there to do, per WEB-STANDARD §10. This decides
+ * which primary module the page gets, so an appointment business and a
+ * call-now business don't render the same page with different words.
+ *
+ *  - `booking`  appointment businesses: salon, clinic, physio, vet, tattoo…
+ *  - `table`    hospitality: restaurant, café, konoba — reserve a table
+ *  - `call`     urgency businesses: trades, emergency, towing — phone only
+ */
+export type PrimaryAction = 'booking' | 'table' | 'call';
+
+export interface NicheProfile {
+  action: PrimaryAction;
+  /** Accent stays inside warm-local's warm family (SPEC §8 niche mapping). */
+  accent: string;
+  accentDark: string;
+}
+
+const NICHE_RULES: [string[], PrimaryAction, string, string][] = [
+  [
+    ['restoran', 'restaurant', 'kafan', 'konoba', 'pizzer', 'pizza', 'bistro', 'taverna', 'grill'],
+    'table',
+    '#9C3D24',
+    '#7C2E19',
+  ],
+  [
+    ['kafi', 'cafe', 'café', 'coffee', 'pekar', 'baker', 'poslastic', 'pastry', 'slasti'],
+    'table',
+    '#C0662C',
+    '#98491C',
+  ],
+  [
+    ['berber', 'barber'],
+    'booking',
+    '#8C3A1F',
+    '#6E2B14',
+  ],
+  [
+    [
+      'frizer', 'salon', 'hair', 'beauty', 'kozmet', 'spa', 'masaž', 'massage', 'nokt', 'nail',
+      'zub', 'stomat', 'dentist', 'dental', 'ordinacij', 'klinik', 'clinic', 'fizio', 'physio',
+      'veterin', 'vet', 'tetov', 'tattoo', 'estetsk', 'aesthetic', 'derma',
+    ],
+    'booking',
+    '#B8492A',
+    '#93361D',
+  ],
+  [
+    [
+      'vodoinstalater', 'plumb', 'električar', 'electric', 'majstor', 'hitna', 'emergency',
+      'šlep', 'towing', 'auto', 'servis', 'mehanič', 'mechanic', 'limar', 'krov', 'roof',
+    ],
+    'call',
+    '#A8431F',
+    '#832F13',
+  ],
+];
+
+export function nicheProfile(niche: string): NicheProfile {
+  const n = niche.toLowerCase();
+  for (const [words, action, accent, accentDark] of NICHE_RULES) {
+    if (words.some((w) => n.includes(w))) return { action, accent, accentDark };
+  }
+  return { action: 'booking', accent: '#B8492A', accentDark: '#93361D' };
 }
 
 /**
@@ -352,6 +488,109 @@ function renderFacts(lead: Lead, strings: Strings): string {
   return `<dl class="facts">${rows.join('')}</dl>`;
 }
 
+/** JSON safe to inline inside a <script> block. */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+/**
+ * Booking module (WEB-STANDARD §10). Time slots are generated in the browser
+ * from the lead's real Google opening hours, so a closed day is disabled and a
+ * 12:00–20:00 salon never offers a 09:00 slot.
+ *
+ * The preview is a concept mockup carrying a disclaimer, so submitting must not
+ * look like it reached the business — a real customer landing here would
+ * otherwise wait for an appointment nobody ever received. The form completes to
+ * a confirmation that says so and hands off to the phone number.
+ *
+ * Returns '' when there are no opening hours: inventing them would breach
+ * WEB-STANDARD §11 ("no prices, hours, staff unless sourced from real data").
+ */
+function renderBooking(
+  lead: Lead,
+  copy: PreviewCopy,
+  strings: Strings,
+  profile: NicheProfile,
+): string {
+  if (profile.action === 'call') return '';
+  if (!lead.openingHours || lead.openingHours.length === 0) return '';
+
+  const table = profile.action === 'table';
+  const options = table
+    ? Array.from({ length: 8 }, (_, i) => `${i + 1} ${strings.bookGuests}`)
+    : copy.services.map((s) => s.title);
+  if (options.length === 0) return '';
+
+  const cfg = {
+    hours: lead.openingHours,
+    closed: strings.bookClosed,
+    noSlots: strings.bookNoSlots,
+    pick: strings.bookPick,
+    err: strings.bookErr,
+    doneTitle: strings.bookDoneTitle,
+    doneNote: strings.bookDoneNote,
+    again: strings.bookAgain,
+    phone: lead.phone ?? '',
+    lang: lead.country === 'RS' ? 'sr-Latn-RS' : 'en-GB',
+    optLabel: table ? strings.bookParty : strings.bookService,
+  };
+
+  const chips = options
+    .map(
+      (o, i) =>
+        `<button type="button" class="chip-opt" role="radio" aria-checked="false" data-val="${escapeHtml(o)}"${i === 0 ? '' : ''}>${escapeHtml(o)}</button>`,
+    )
+    .join('');
+
+  return `
+<section id="booking" class="booksec"><div class="wrap">
+  <div class="sec-head">
+    <span class="eyebrow">${strings.eyeBook}</span>
+    <h2>${table ? strings.bookTitleTable : strings.bookTitle}</h2>
+    <p>${strings.bookIntro}</p>
+  </div>
+  <div class="bookgrid">
+    <form class="bookform" id="bkForm" novalidate>
+      <fieldset class="bkstep">
+        <legend><span class="bkn">1</span>${table ? strings.bookParty : strings.bookService}</legend>
+        <div class="chips" id="bkOpts" role="radiogroup" aria-label="${table ? strings.bookParty : strings.bookService}">${chips}</div>
+      </fieldset>
+      <fieldset class="bkstep">
+        <legend><span class="bkn">2</span>${strings.bookDate}</legend>
+        <div class="days" id="bkDays" role="radiogroup" aria-label="${strings.bookDate}"></div>
+      </fieldset>
+      <fieldset class="bkstep">
+        <legend><span class="bkn">3</span>${strings.bookTime}</legend>
+        <div class="chips" id="bkSlots" role="radiogroup" aria-label="${strings.bookTime}"></div>
+      </fieldset>
+      <fieldset class="bkstep">
+        <legend><span class="bkn">4</span>${strings.contactLabel}</legend>
+        <div class="bkfields">
+          <label>${strings.bookName}<input id="bkName" name="name" type="text" autocomplete="name" required/></label>
+          <label>${strings.bookPhone}<input id="bkPhone" name="phone" type="tel" autocomplete="tel" required/></label>
+        </div>
+      </fieldset>
+      <p class="bkerr" id="bkErr" role="alert" hidden></p>
+      <button class="cta" type="submit">${table ? strings.bookSubmitTable : strings.bookSubmit}</button>
+    </form>
+    <aside class="booksum">
+      <h3>${strings.bookSummary}</h3>
+      <dl id="bkSum"><div><dt>${strings.bookPick}</dt></div></dl>
+      <div class="booksum-foot">
+        <span class="lbl">${strings.phoneLabel}</span>
+        <a class="tel" href="${lead.phone ? `tel:${lead.phone.replace(/[^\d+]/g, '')}` : '#kontakt'}">${escapeHtml(lead.phone ?? '—')}</a>
+      </div>
+    </aside>
+  </div>
+  <script type="application/json" id="bkCfg">${jsonForScript(cfg)}</script>
+</div></section>`;
+}
+
 /** Opening-hours rows from real Places data. Empty string when unknown. */
 function renderHours(lead: Lead): string {
   if (!lead.openingHours || lead.openingHours.length === 0) return '';
@@ -380,6 +619,9 @@ export function renderPreview(params: RenderParams): string {
   const strings = stringsFor(lead.country);
   const phone = lead.phone ?? '';
   const phoneHref = phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : `${baseUrl}`;
+  const profile = nicheProfile(lead.category);
+  const bookingHtml = renderBooking(lead, copy, strings, profile);
+  const hasBooking = bookingHtml !== '';
 
   const slots: Record<string, string> = {
     lang: lead.country === 'RS' ? 'sr-Latn' : 'en',
@@ -417,6 +659,21 @@ export function renderPreview(params: RenderParams): string {
     eyeServices: strings.eyeServices,
     eyeAbout: strings.eyeAbout,
     eyeVisit: strings.eyeVisit,
+    bookingHtml,
+    navBook: strings.navBook,
+    navBookHidden: hasBooking ? '' : 'hidden',
+    // With a booking module the primary CTA must point at it, not at the phone
+    // — WEB-STANDARD §11: one CTA idea per page, repeated.
+    primaryCtaHref: hasBooking ? '#booking' : phoneHref,
+    primaryCtaLabel: escapeHtml(
+      hasBooking
+        ? profile.action === 'table'
+          ? strings.bookTitleTable
+          : strings.bookTitle
+        : copy.ctaLabel,
+    ),
+    nicheAccent: profile.accent,
+    nicheAccentDark: profile.accentDark,
     aboutLead: escapeHtml(splitAbout(copy.about).lead),
     aboutLeadHidden: splitAbout(copy.about).lead === '' ? 'hidden' : '',
     aboutBody: escapeHtml(splitAbout(copy.about).body),

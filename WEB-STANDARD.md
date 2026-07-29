@@ -380,6 +380,33 @@ palette or layout.
 **Reading the table:** industry sets *emphasis and tone*, not a different rulebook.
 Type, space, contrast and motion rules in §3–§7 never change.
 
+### 10.1 The primary module
+
+The CTA column above is not a button label — it is a **module the page must
+carry**. A salon whose primary CTA is "Book" and which offers no way to book is
+a brochure with a phone number on it. Three modules cover the table:
+
+| Action | Sectors | Module |
+|---|---|---|
+| **Book** | salons, barbers, clinics, dentists, physio, vets, tattoo, driving schools | Service → date → time → contact, inline on the page |
+| **Reserve** | restaurants, cafés, konobe, bakeries | Party size → date → time → contact |
+| **Call** | trades, emergency, towing, auto repair | Phone as the largest element; no form — a form adds delay to an urgent job |
+
+Rules for the booking and reserve modules:
+
+- **Slots come from real opening hours.** A closed day is disabled and labelled
+  closed, never hidden. A 12:00–20:00 business never offers 09:00. No opening
+  hours on the lead means **no module** — inventing availability breaks §11.
+- **Same-day slots respect a lead time.** Offering a slot 5 minutes out is a
+  tell that nothing behind the form is real.
+- **Every step is reachable by keyboard** and each control is ≥44px (§12).
+- **On a preview, submitting must not imply the business received anything.**
+  Previews carry a disclaimer and can be found by real customers; a confirmation
+  that reads like a real booking leaves someone waiting for an appointment
+  nobody got. Confirm the *selection*, say plainly it was not sent, and hand off
+  to the phone number.
+
+
 ---
 
 ## 11. Copy
