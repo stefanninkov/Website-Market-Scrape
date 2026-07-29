@@ -10,7 +10,8 @@
     "dev:analyze": "tsx src/analyze.ts",
     "dev:ai": "tsx src/ai.ts",
     "dev:preview": "tsx src/preview.ts",
-    "dev:cron": "tsx src/cron.ts"
+    "dev:cron": "tsx src/cron.ts",
+    "dev:agent": "tsx src/agent.ts"
   },
   "engines": {
     "node": ">=20"

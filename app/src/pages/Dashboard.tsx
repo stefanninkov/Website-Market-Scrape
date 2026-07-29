@@ -1,19 +1,19 @@
 /**
  * Dashboard (SPEC §9.1, PLAN Phase 1+3): counters (total leads, no-website,
  * new this week, due follow-ups, reply rate) and the due-follow-ups list.
- * Counters use server-side count aggregation; the follow-ups list is a live
- * query (followUpDue <= now).
+ *
+ * Counters are derived from live listeners rather than getCountFromServer.
+ * Aggregation queries are one-shot: they cannot tell you a lead was deleted or
+ * ignored, so the numbers went stale the moment anything changed. Listening
+ * costs the same documents the Leads page already streams.
+ *
+ * `ignored` leads are excluded from every counter. SPEC §11 makes ignored
+ * permanent — a lead you have decided never to contact is not part of your
+ * pipeline and should not inflate its size.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  getCountFromServer,
-  limit,
-  orderBy,
-  query,
-  Timestamp,
-  where,
-} from 'firebase/firestore';
+import { useMemo } from 'react';
+import { limit, orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { eventsCol, leadsCol } from '../lib/db';
 import { useQuery } from '../lib/hooks';
 import { formatRelative, startOfWeek } from '../lib/format';
@@ -31,42 +31,31 @@ interface Counts {
 }
 
 export default function Dashboard() {
-  const [counts, setCounts] = useState<Counts | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Every non-ignored lead. Live, so deletes and stage changes land immediately.
+  const leadsQuery = useMemo(() => query(leadsCol(), where('stage', '!=', 'ignored')), []);
+  const { data: leads, loading, error } = useQuery(leadsQuery);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const col = leadsCol();
-      const [total, noWebsite, newThisWeek, contacted, replied, previewViews, won, lost] =
-        await Promise.all([
-          getCountFromServer(col),
-          getCountFromServer(query(col, where('websiteType', 'in', ['none', 'facebook', 'instagram']))),
-          getCountFromServer(query(col, where('firstSeenAt', '>=', Timestamp.fromDate(startOfWeek())))),
-          getCountFromServer(query(col, where('outreach.lastSentAt', '!=', null))),
-          getCountFromServer(query(col, where('outreach.replied', '==', true))),
-          getCountFromServer(query(eventsCol(), where('type', '==', 'preview_view'))),
-          getCountFromServer(query(col, where('stage', '==', 'won'))),
-          getCountFromServer(query(col, where('stage', '==', 'lost'))),
-        ]);
-      setCounts({
-        total: total.data().count,
-        noWebsite: noWebsite.data().count,
-        newThisWeek: newThisWeek.data().count,
-        contacted: contacted.data().count,
-        replied: replied.data().count,
-        previewViews: previewViews.data().count,
-        won: won.data().count,
-        lost: lost.data().count,
-      });
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
+  const viewsQuery = useMemo(
+    () => query(eventsCol(), where('type', '==', 'preview_view')),
+    [],
+  );
+  const { data: viewEvents } = useQuery(viewsQuery);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const counts: Counts = useMemo(() => {
+    const weekStart = startOfWeek();
+    return {
+      total: leads.length,
+      noWebsite: leads.filter((l) =>
+        ['none', 'facebook', 'instagram'].includes(l.websiteType),
+      ).length,
+      newThisWeek: leads.filter((l) => l.firstSeenAt.toDate() >= weekStart).length,
+      contacted: leads.filter((l) => l.outreach.lastSentAt !== null).length,
+      replied: leads.filter((l) => l.outreach.replied).length,
+      previewViews: viewEvents.length,
+      won: leads.filter((l) => l.stage === 'won').length,
+      lost: leads.filter((l) => l.stage === 'lost').length,
+    };
+  }, [leads, viewEvents]);
 
   // Due follow-ups: followUpDue in the past, still unanswered.
   const dueQuery = useMemo(
@@ -83,36 +72,29 @@ export default function Dashboard() {
   const due = dueLeads.filter((l) => !l.outreach.replied && l.stage !== 'ignored');
 
   const replyRate =
-    counts && counts.contacted > 0
-      ? `${Math.round((counts.replied / counts.contacted) * 100)}%`
-      : '—';
+    counts.contacted > 0 ? `${Math.round((counts.replied / counts.contacted) * 100)}%` : '—';
 
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Dashboard</h1>
-        <button
-          onClick={() => void load()}
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text-dim hover:text-text"
-        >
-          Refresh
-        </button>
+        {loading && <span className="text-xs text-text-dim">Loading…</span>}
       </div>
 
       {error ? (
-        <p className="text-sm text-danger">Failed to load counters: {error}</p>
+        <p className="text-sm text-danger">Failed to load counters: {error.message}</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Counter label="Total leads" value={counts?.total} />
-          <Counter label="No real website" value={counts?.noWebsite} accent />
-          <Counter label="New this week" value={counts?.newThisWeek} />
+          <Counter label="Total leads" value={counts.total} />
+          <Counter label="No real website" value={counts.noWebsite} accent />
+          <Counter label="New this week" value={counts.newThisWeek} />
           <Counter label="Due follow-ups" value={due.length} warn={due.length > 0} />
           <Counter label="Reply rate" value={replyRate} />
-          <Counter label="Preview views" value={counts?.previewViews} />
+          <Counter label="Preview views" value={counts.previewViews} />
         </div>
       )}
 
-      {counts && (counts.won > 0 || counts.lost > 0) && (
+      {(counts.won > 0 || counts.lost > 0) && (
         <div className="mt-3 grid grid-cols-2 gap-3 sm:max-w-xs">
           <Counter label="Won" value={counts.won} accent />
           <Counter label="Lost" value={counts.lost} />
