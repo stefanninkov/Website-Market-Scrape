@@ -51,6 +51,12 @@ export interface RunAgentParams<T> {
    * cannot end a run by writing prose.
    */
   submitToolName: string;
+  /**
+   * Anthropic server-side tool specs (e.g. web search). These execute on
+   * Anthropic's side inside a single turn, so the loop never invokes them — it
+   * only logs what they did, which is what keeps the audit trail complete.
+   */
+  serverTools?: Anthropic.ToolUnion[];
   logger?: AgentLogger;
   /**
    * Checked before every model turn. Returning true ends the run as `aborted` —
@@ -105,6 +111,7 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
     toolContext,
     outputSchema,
     submitToolName,
+    serverTools = [],
     logger,
     shouldAbort,
     now = () => Date.now(),
@@ -147,7 +154,7 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
         model: ANTHROPIC_MODEL,
         max_tokens: MAX_TOKENS_PER_TURN,
         system,
-        tools: tools.specs(),
+        tools: [...tools.specs(), ...serverTools],
         messages,
       });
     } catch (err) {
@@ -165,6 +172,29 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
       .join('\n');
+
+    // Server-side tools ran inside this turn. Log them as tool steps so a run
+    // reads the same whether a search was local or server-side (PLAN.md §7).
+    for (const block of response.content) {
+      const b = block as { type: string; name?: string; input?: unknown; content?: unknown };
+      if (b.type === 'server_tool_use') {
+        await safeLog({
+          role: 'tool',
+          toolName: `${b.name ?? 'server_tool'} (server-side)`,
+          inputSummary: truncateForLog(JSON.stringify(b.input ?? {})),
+          outputSummary: '(result follows)',
+          tokens: 0,
+        });
+      } else if (b.type === 'web_search_tool_result') {
+        await safeLog({
+          role: 'tool',
+          toolName: 'web_search result',
+          inputSummary: '',
+          outputSummary: truncateForLog(JSON.stringify(b.content ?? {})),
+          tokens: 0,
+        });
+      }
+    }
 
     await safeLog({
       role: 'model',

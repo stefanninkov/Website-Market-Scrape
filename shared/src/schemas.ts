@@ -422,3 +422,69 @@ export const suppressionSchema = z.object({
   at: timestampSchema,
   leadId: z.string().nullable(),
 });
+
+// ---------------------------------------------------------------------------
+// Preview composition engine (PREVIEW-SYSTEM.md §2, §3, §5.4, §7)
+// ---------------------------------------------------------------------------
+
+export const artDirectionIdSchema = z.enum([
+  'editorial-warm',
+  'clinical-calm',
+  'industrial-bold',
+  'luxe-dark',
+  'fresh-utility',
+  'gallery-mono',
+  'heritage-serif',
+  'soft-rounded',
+  'corporate-navy',
+  'neon-night',
+]);
+
+export const sectionTypeSchema = z.enum([
+  'hero',
+  'proofstrip',
+  'services',
+  'gallery',
+  'about',
+  'reviews',
+  'hours',
+  'location',
+  'primaryModule',
+  'faq',
+  'ctaBand',
+  'footer',
+]);
+
+export const primaryModuleSchema = z.enum(['book', 'reserve', 'call']);
+
+export const sectionInstanceSchema = z.object({
+  type: sectionTypeSchema,
+  variant: z.string().min(1),
+  data: z.record(z.unknown()),
+});
+
+/** §5.4: if a licence cannot be recorded, the image is not used. */
+export const imageLicenceSchema = z.object({
+  source: z.string().min(1),
+  url: z.string().min(1),
+  licence: z.string().min(1),
+  attribution: z.string(),
+});
+
+export const imagePlanSchema = z.object({
+  entries: z.array(imageLicenceSchema.extend({ sectionIndex: z.number().int().min(0) })),
+});
+
+export const compositionSpecSchema = z.object({
+  artDirection: artDirectionIdSchema,
+  sections: z.array(sectionInstanceSchema),
+  primaryModule: primaryModuleSchema,
+  imagePlan: imagePlanSchema,
+  language: z.enum(['sr', 'en']),
+});
+
+export const gateResultsSchema = z.object({
+  passed: z.array(z.string()),
+  failed: z.array(z.string()),
+  warned: z.array(z.string()),
+});

@@ -9,7 +9,7 @@ PREVIEW-SYSTEM.md). Phase 6 (portfolio) stays last. Check tasks off as they're c
 ## Phase 0: Scaffolding
 
 - [x] Monorepo structure per SPEC §12 (app/, functions/, workers/, shared/)
-- [ ] Firebase project init: Firestore, Auth (Google, locked to owner email via security rules), Hosting, Storage, Functions
+- [x] Firebase project init: Firestore, Auth (Google, locked to owner email via security rules), Hosting, Storage, Functions
 - [x] firestore.rules + storage.rules: owner-only everything, `previews/` publicly readable via servePreview only
 - [x] /shared: types.ts from SPEC §4, zod schemas, Firestore helpers, budget.ts guard helpers
 - [x] Vite app skeleton: Tailwind v4 setup with DESIGN.md tokens, router, auth gate, app shell (sidebar desktop / bottom nav mobile)
@@ -103,7 +103,9 @@ Spec: AGENTS.md §1 to §4, §8, §10.
 
 - [x] `workers/src/agent/loop.ts`: bounded tool-use loop (max steps, max tokens, max seconds), zod-validated output, one retry on validation failure, structured `AgentRunResult`
 - [x] Tool framework in `workers/src/agent/tools/`: typed schema, model-facing description, cost profile per tool
-- [x] Tools: `read_lead`, `fetch_page` (reuses `lib/robots.ts`, blocks private IPs, 10s / 2MB caps), `screenshot_page` (375 and 1440), `places_details`, `web_search` (max 3 per run), `run_analyzer`
+- [x] Tools: `read_lead`, `fetch_page` (reuses `lib/robots.ts`, blocks private IPs, 10s / 2MB caps), `screenshot_page` (375 and 1440), `places_details`, `web_search`, `run_analyzer`
+- [x] `web_search` limits: max 1 call per qualifier run and only for chain or franchise detection, max 3 per researcher run. Results cached per query string for 30 days so repeat sweeps of the same region cost nothing
+- [x] Log server-side search calls into `agentRuns/{runId}/steps` like any other tool, so the audit trail stays complete
 - [x] `agentRuns/{runId}` + `steps` subcollection, every model turn and tool call logged with 4KB summaries
 - [x] Extend `lib/budget.ts` with an `agent` counter, real token usage, per-run / per-day / per-month levels
 - [x] `config/agents` doc with the global kill switch, per-agent toggles, per-run caps
@@ -127,6 +129,7 @@ Spec: PREVIEW-SYSTEM.md. Craft rules: WEB-STANDARD.md.
 - [ ] Composer: `CompositionSpec` resolution against available data, sections omitted when required data is missing (never placeholder content)
 - [ ] Hero decision logic from §4.1, including `type-led` as a real design. Delete the gradient-behind-headline path entirely
 - [ ] Primary module (`book` / `reserve` / `call`) per WEB-STANDARD §10.1: slots from real opening hours, closed days disabled and labelled, no hours means no module, preview submit confirms the selection and states plainly that nothing was sent
+- [ ] **Port, do not rewrite.** The booking module and `book`/`reserve`/`call` routing already built in the v1 templates is this item. Move the working logic into the section library as `primaryModule` variants, keep its behaviour, and only restyle it against the art direction tokens. Diff the ported version against the original before deleting the templates
 - [ ] Live Places Details call for opening hours at generation time, used in the render and not warehoused (PREVIEW-SYSTEM.md §5.5)
 - [ ] Imagery pipeline §5: Pexels first, then Openverse, then generated texture, then no image with a `type-led` hero. No Places photos and no scraping the lead's own site (§5.1). Per-image licence record required or the image is not used
 - [ ] Curate 20 to 40 reviewed images per niche into `niche-images/{niche}/` using the rejection criteria in §5.3
@@ -134,7 +137,7 @@ Spec: PREVIEW-SYSTEM.md. Craft rules: WEB-STANDARD.md.
 - [ ] Extended `PreviewCopy` (§6) with `proofFacts`, optional `faq`, and required `altTexts`
 - [ ] Copy validator: reject any digit in rendered copy that is absent from source data, ban unevidenced superlatives
 - [ ] `preview/gates.ts`: G1 to G8 and G11 blocking, G9 and G10 warning, run headless on every render before `preview: ready`
-- [ ] Migration §8: compose `minimal-light` from sections as the proof, record the honest gate baseline for current v1 output, map `TemplateId` to `ArtDirectionId` keeping old slugs resolvable, then delete `workers/templates/*.html`
+- [ ] Migration §8: compose `minimal-light` from sections as the proof, record the honest gate baseline for current v1 output, map `TemplateId` to `ArtDirectionId` keeping old slugs resolvable, then delete `workers/templates/*.html` **only after** every behaviour they carry (including the primary module) exists in the section library and has been diffed
 - [ ] Slugs and view counters unchanged across the migration
 
 **Milestone: two leads in the same niche and city receive visibly different pages, with real photography, no placeholder hero, and no page ships that fails a blocking gate.**
@@ -176,13 +179,13 @@ Spec: AGENTS.md §7. Requires Phase 8.
 
 Not build work, but nothing runs live until these exist:
 
-- [ ] Firebase project (Blaze, EU region), `.firebaserc`, `app/.env`
-- [ ] Places API (New) key and PageSpeed Insights key
-- [ ] Anthropic API key
+- [x] Firebase project (Blaze, EU region), `.firebaserc`, `app/.env` (live)
+- [x] Places API (New) key and PageSpeed Insights key (live)
+- [x] Anthropic API key (live)
+- [x] Phase 0 "Firebase project init" (closed, the project is live)
 - [ ] Gmail OAuth client, `gcloud pubsub topics create gmail-replies`, then live-verify the three Phase 3 Gmail tasks
 - [ ] Hetzner CX22 provisioned per README, workers running under pm2
-- [ ] Pexels and Unsplash API keys (Phase 8)
-- [ ] Phase 0 "Firebase project init" checkbox closed once the above is live
+- [ ] Pexels API key (Phase 8)
 
 Note: the old "curate niche image sets" task is closed rather than done. Phase 8
 replaces manual curation with the API pipeline.

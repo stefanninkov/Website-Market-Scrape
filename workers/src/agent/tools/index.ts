@@ -7,7 +7,9 @@
  * unit test, so weakening it fails the build rather than passing silently.
  */
 
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import type { ToolUnion as AnthropicToolUnion } from '@anthropic-ai/sdk/resources/messages';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import {
   COLLECTIONS,
@@ -364,6 +366,65 @@ export function makeRunAnalyzerTool(): AgentTool<z.infer<typeof runAnalyzerInput
 }
 
 // ---------------------------------------------------------------------------
+// Server-side web search (Anthropic). Chosen over Brave/Serper: no new key, no
+// new dependency, nothing extra to debug.
+//
+// Two consequences worth knowing:
+//  - `max_uses` is the per-run cap, enforced by the API rather than by us, so
+//    it cannot be talked around by the model.
+//  - The 30-day per-query cache in PLAN.md cannot apply here. The search runs
+//    on Anthropic's side and we never see the request, so there is nothing to
+//    intercept. `cachedSearchProvider` below implements that cache for the
+//    client-side provider path, which is what a future swap would use.
+// ---------------------------------------------------------------------------
+
+export const WEB_SEARCH_SERVER_TOOL = 'web_search_20250305';
+
+/** Qualifier: 1 call, chain/franchise detection only (PLAN.md §7). */
+export const QUALIFIER_SEARCH_MAX_USES = 1;
+/** Researcher: 3 calls (AGENTS.md §5, PLAN.md §7). */
+export const RESEARCHER_SEARCH_MAX_USES = 3;
+
+export function serverWebSearchSpec(maxUses: number): AnthropicToolUnion {
+  return {
+    type: WEB_SEARCH_SERVER_TOOL,
+    name: 'web_search',
+    max_uses: maxUses,
+  } as unknown as AnthropicToolUnion;
+}
+
+// ---------------------------------------------------------------------------
+// Cached client-side provider, kept so the abstraction survives a swap away
+// from server-side search (PLAN.md §7: cache per query string for 30 days).
+// ---------------------------------------------------------------------------
+
+const SEARCH_CACHE_DAYS = 30;
+const SEARCH_CACHE_COLLECTION = 'searchCache';
+
+export function cachedSearchProvider(
+  db: Firestore,
+  inner: WebSearchProvider,
+): WebSearchProvider {
+  return {
+    async search(query: string) {
+      const key = createHash('sha256').update(query.trim().toLowerCase()).digest('hex');
+      const ref = db.collection(SEARCH_CACHE_COLLECTION).doc(key);
+      const snap = await ref.get();
+      if (snap.exists) {
+        const d = snap.data() as { at?: { toMillis(): number }; results?: unknown };
+        const ageDays = d.at ? (Date.now() - d.at.toMillis()) / 86_400_000 : Infinity;
+        if (ageDays < SEARCH_CACHE_DAYS && Array.isArray(d.results)) {
+          return d.results as Array<{ title: string; url: string; snippet: string }>;
+        }
+      }
+      const results = await inner.search(query);
+      await ref.set({ query, results, at: Timestamp.now() });
+      return results;
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Catalogue assembly
 // ---------------------------------------------------------------------------
 
@@ -382,9 +443,12 @@ export function qualifierTools(deps: ToolDeps): AnyAgentTool[] {
     makeReadLeadTool(),
     makeFetchPageTool(),
     makePlacesDetailsTool(deps.places, deps.lang),
-    makeWebSearchTool(deps.search),
     makeRunAnalyzerTool(),
   ];
+  // Only when a client-side provider is wired. With server-side search the
+  // model gets the tool from the API and this local one must not also exist,
+  // or the same capability appears twice under one name.
+  if (deps.search) tools.push(makeWebSearchTool(deps.search));
   if (deps.shooter && deps.bucket) {
     tools.push(makeScreenshotTool(deps.shooter, deps.bucket));
   }

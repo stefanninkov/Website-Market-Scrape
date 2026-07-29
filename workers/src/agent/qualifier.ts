@@ -20,6 +20,7 @@ import {
   type Qualification,
 } from '@wms/shared';
 import { runAgent, type AgentLogger } from './loop.js';
+import { QUALIFIER_SEARCH_MAX_USES, serverWebSearchSpec } from './tools/index.js';
 import { ToolRegistry, newToolContext, type AnyAgentTool } from './tools/registry.js';
 import type { Firestore } from 'firebase-admin/firestore';
 
@@ -46,6 +47,7 @@ Rules you must follow:
 - confidence is your own calibration, 0 to 1. Lower it when a tool failed, when web search was unavailable, or when you are inferring rather than observing.
 - Keep the rationale to 2-4 plain sentences that Stefan can act on without opening the lead.
 - Work efficiently. Stop calling tools as soon as you can answer. You do not need every tool on every lead.
+- You get ONE web search per run and it is reserved for signal 5: checking whether this business is a chain, a franchise, or has a corporate parent. Do not spend it on anything else.
 
 Finish by calling ${SUBMIT_TOOL}. Do not answer in prose.`;
 
@@ -156,6 +158,8 @@ export interface QualifyParams {
   runId: string;
   logger?: AgentLogger;
   shouldAbort?: () => Promise<boolean>;
+  /** False when a client-side provider is wired instead (PLAN.md §7). */
+  serverSearch?: boolean;
 }
 
 export async function qualifyLead(
@@ -173,6 +177,8 @@ export async function qualifyLead(
     toolContext: ctx,
     outputSchema: qualificationSchema as unknown as z.ZodType<Qualification>,
     submitToolName: SUBMIT_TOOL,
+    serverTools:
+      params.serverSearch === false ? [] : [serverWebSearchSpec(QUALIFIER_SEARCH_MAX_USES)],
     ...(params.logger ? { logger: params.logger } : {}),
     ...(params.shouldAbort ? { shouldAbort: params.shouldAbort } : {}),
   });

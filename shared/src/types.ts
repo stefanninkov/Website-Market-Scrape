@@ -74,11 +74,17 @@ export interface LeadPreview {
   status: PreviewStatus;
   slug: string | null; // /p/{slug}
   url: string | null;
+  /** v1 previews only. New previews write artDirection and leave this null. */
   templateId: TemplateId | null;
   copy: PreviewCopy | null;
   generatedAt: TimestampLike | null;
   views: number; // logged by servePreview
   lastViewAt: TimestampLike | null;
+  /** v3 composition engine (SPEC §14, PREVIEW-SYSTEM.md). */
+  artDirection?: ArtDirectionId | null;
+  compositionSpec?: CompositionSpec | null;
+  imageLicences?: ImageLicence[];
+  gateResults?: GateResults | null;
 }
 
 /** Doc ID = Google place_id (free dedupe). Collection: leads */
@@ -282,6 +288,87 @@ export interface Identity {
   address: string;
   calLink: string;
   emailSignature: string;
+}
+
+// ---------------------------------------------------------------------------
+// Preview composition engine (PREVIEW-SYSTEM.md). Authoritative over SPEC §8
+// and DESIGN.md Part 2.
+// ---------------------------------------------------------------------------
+
+/** The ten art direction presets (PREVIEW-SYSTEM.md §3). */
+export type ArtDirectionId =
+  | 'editorial-warm'
+  | 'clinical-calm'
+  | 'industrial-bold'
+  | 'luxe-dark'
+  | 'fresh-utility'
+  | 'gallery-mono'
+  | 'heritage-serif'
+  | 'soft-rounded'
+  | 'corporate-navy'
+  | 'neon-night';
+
+/** The twelve section types (PREVIEW-SYSTEM.md §4). */
+export type SectionType =
+  | 'hero'
+  | 'proofstrip'
+  | 'services'
+  | 'gallery'
+  | 'about'
+  | 'reviews'
+  | 'hours'
+  | 'location'
+  | 'primaryModule'
+  | 'faq'
+  | 'ctaBand'
+  | 'footer';
+
+export type PrimaryModule = 'book' | 'reserve' | 'call';
+
+export interface SectionInstance {
+  type: SectionType;
+  variant: string;
+  /** Resolved before render — never nullable at render time (§2). */
+  data: Record<string, unknown>;
+}
+
+export interface ImagePlanEntry {
+  sectionIndex: number;
+  source: string;
+  url: string;
+  licence: string;
+  attribution: string;
+}
+
+export interface ImagePlan {
+  entries: ImagePlanEntry[];
+}
+
+/**
+ * A page is a spec resolved against available data, not a filled template.
+ * Rendering is pure: same spec plus same data always produces the same bytes.
+ */
+export interface CompositionSpec {
+  artDirection: ArtDirectionId;
+  sections: SectionInstance[];
+  primaryModule: PrimaryModule;
+  imagePlan: ImagePlan;
+  language: 'sr' | 'en';
+}
+
+/** Per-image licence record. No record means the image is not used (§5.4). */
+export interface ImageLicence {
+  source: string;
+  url: string;
+  licence: string;
+  attribution: string;
+}
+
+/** Outcome of the blocking and warning gates (PREVIEW-SYSTEM.md §7). */
+export interface GateResults {
+  passed: string[];
+  failed: string[];
+  warned: string[];
 }
 
 // ---------------------------------------------------------------------------

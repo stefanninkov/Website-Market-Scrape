@@ -89,6 +89,8 @@ export function makeQualifyHandler(deps: QualifyDeps): JobHandler {
         bucket: deps.bucket,
         search: deps.search,
       }),
+      // Server-side search unless a client-side provider is configured.
+      serverSearch: deps.search === null,
       // Re-read the switch each step so flipping it stops a run in flight.
       shouldAbort: async () => {
         const fresh = await readAgentsConfig(db);
