@@ -104,6 +104,10 @@ interface Strings {
   bookAgain: string;
   bookErr: string;
   bookGuests: string;
+  basedOn: string;
+  readReviews: string;
+  eyeReviews: string;
+  reviewsHeading: string;
 }
 
 // SPEC §3: Serbian (latinica) for RS leads, English otherwise. Branding bar
@@ -157,6 +161,10 @@ function stringsFor(country: string): Strings {
       bookAgain: 'Izmenite izbor',
       bookErr: 'Popunite sva polja pre potvrde.',
       bookGuests: 'osoba',
+      basedOn: 'na osnovu',
+      readReviews: 'Pročitajte recenzije na Google-u',
+      eyeReviews: 'Recenzije',
+      reviewsHeading: 'Šta kažu klijenti',
       disclaimer:
         'Ovo je konceptni prikaz sajta, ne zvanična prezentacija ovog biznisa. Izradio FlowDev kao predlog.',
     };
@@ -208,6 +216,10 @@ function stringsFor(country: string): Strings {
     bookAgain: 'Change selection',
     bookErr: 'Please complete every field first.',
     bookGuests: 'guests',
+    basedOn: 'based on',
+    readReviews: 'Read the reviews on Google',
+    eyeReviews: 'Reviews',
+    reviewsHeading: 'What customers say',
     disclaimer:
       'This is a concept mockup, not the official website of this business. Built by FlowDev as a proposal.',
   };
@@ -270,6 +282,31 @@ const NICHE_RULES: [string[], PrimaryAction, string, string][] = [
     '#832F13',
   ],
 ];
+
+/**
+ * Accent per template (DESIGN.md §The 4 variants). Only warm-local varies its
+ * accent by niche; the other three carry a fixed brand colour, except
+ * bold-dark which already keys off the niche via boldAccentForNiche.
+ */
+export function accentFor(
+  templateId: TemplateId,
+  niche: string,
+): { accent: string; accentDark: string } {
+  switch (templateId) {
+    case 'minimal-light':
+      return { accent: '#2D5BFF', accentDark: '#1B3FCC' };
+    case 'corporate-clean':
+      return { accent: '#1F8A70', accentDark: '#166654' };
+    case 'bold-dark': {
+      const accent = boldAccentForNiche(niche);
+      return { accent, accentDark: accent };
+    }
+    case 'warm-local': {
+      const p = nicheProfile(niche);
+      return { accent: p.accent, accentDark: p.accentDark };
+    }
+  }
+}
 
 export function nicheProfile(niche: string): NicheProfile {
   const n = niche.toLowerCase();
@@ -378,12 +415,6 @@ function splitAbout(about: string): { lead: string; body: string } {
 /** Stat row built only from real Places data — no invented numbers. */
 function renderStats(lead: Lead, copy: PreviewCopy, strings: Strings): string {
   const cells: string[] = [];
-  if (lead.rating != null) {
-    cells.push(`<div><b>${lead.rating.toFixed(1)}</b><span>${strings.ratingShort}</span></div>`);
-  }
-  if (lead.reviewCount) {
-    cells.push(`<div><b>${lead.reviewCount}</b><span>${strings.reviewsShort}</span></div>`);
-  }
   const open = (lead.openingHours ?? []).filter((l) => {
     const hours = l.split('|')[1] ?? '';
     return hours !== '' && !/zatvoreno|closed/i.test(hours);
@@ -392,6 +423,8 @@ function renderStats(lead: Lead, copy: PreviewCopy, strings: Strings): string {
   if (copy.services.length > 0) {
     cells.push(`<div><b>${copy.services.length}</b><span>${strings.servicesShort}</span></div>`);
   }
+  if (lead.region) cells.push(`<div><b>${escapeHtml(lead.region)}</b><span>${strings.addressLabel}</span></div>`);
+  if (lead.category) cells.push(`<div><b>${escapeHtml(lead.category)}</b><span>${strings.servicesLabel}</span></div>`);
   if (cells.length === 0) return '';
   return cells.join('');
 }
@@ -412,22 +445,21 @@ function renderHeroPanel(lead: Lead, imageUrl: string | null, strings: Strings):
   return `<div class="panel"><div class="arch"><span class="mono">${escapeHtml(monogramFor(lead.name))}</span></div>${chip}<span class="tagchip">${escapeHtml(lead.region || strings.localBadge)}</span></div>`;
 }
 
-function renderServices(templateId: TemplateId, copy: PreviewCopy): string {
+function renderServices(copy: PreviewCopy): string {
+  // One structure for every template; each template's CSS decides what shows
+  // (minimal-light hides the icon, bold-dark enlarges the index, and so on).
+  // Divergent markup per template was how .num/.svc-n drifted out of sync.
   return copy.services
     .map((svc, i) => {
       const n = String(i + 1).padStart(2, '0');
-      const title = escapeHtml(svc.title);
-      const blurb = escapeHtml(svc.blurb);
-      switch (templateId) {
-        case 'minimal-light':
-          return `<div class="svc"><span class="num">${n}</span><h3>${title}</h3><p>${blurb}</p></div>`;
-        case 'bold-dark':
-          return `<div class="svc"><span class="num">${n}</span><h3>${title}</h3><p>${blurb}</p></div>`;
-        case 'warm-local':
-          return `<article class="svc"><span class="icowrap">${svgIcon(svc.title)}</span><h3>${title}</h3><p>${blurb}</p><span class="svc-n">${n}</span></article>`;
-        case 'corporate-clean':
-          return `<div class="svc"><span class="chk">✓</span><div><h3>${title}</h3><p>${blurb}</p></div></div>`;
-      }
+      return (
+        `<article class="svc">` +
+        `<span class="icowrap">${svgIcon(svc.title)}</span>` +
+        `<h3>${escapeHtml(svc.title)}</h3>` +
+        `<p>${escapeHtml(svc.blurb)}</p>` +
+        `<span class="svc-n">${n}</span>` +
+        `</article>`
+      );
     })
     .join('\n');
 }
@@ -465,13 +497,14 @@ function renderProof(lead: Lead, strings: Strings): string {
 function renderProofBand(lead: Lead, strings: Strings): string {
   if (lead.rating == null) return '';
   const stars = '★'.repeat(Math.round(Math.min(lead.rating, 5)));
-  const sub = [
-    lead.reviewCount ? `${lead.reviewCount} ${strings.reviewsWord}` : '',
-    lead.category && lead.region ? `${lead.category} · ${lead.region}` : lead.region,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  return `<span class="band-stars">${stars}</span><p class="band-score">${lead.rating.toFixed(1)}</p><p class="band-sub">${escapeHtml(sub)}</p>`;
+  const sub = lead.reviewCount
+    ? `${strings.basedOn} ${lead.reviewCount} ${strings.reviewsWord}`
+    : strings.reviewsWord;
+  // Google's own "all reviews" page for this place. Linking out is the correct
+  // way to surface review content: it stays on Google, attributed, unfiltered
+  // and current, and it costs nothing extra to fetch.
+  const link = `<a class="revlink" href="https://search.google.com/local/reviews?placeid=${encodeURIComponent(lead.placeId)}" target="_blank" rel="noreferrer">${strings.readReviews} ↗</a>`;
+  return `<span class="band-stars">${stars}</span><p class="band-score">${lead.rating.toFixed(1)}</p><p class="band-sub">${escapeHtml(sub)}</p>${link}`;
 }
 
 /** Quick-facts aside next to the About copy, real data only. */
@@ -497,6 +530,139 @@ function jsonForScript(value: unknown): string {
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
 }
+
+/**
+ * Behaviour for the booking module. Lives here rather than in each template
+ * so all four templates share one implementation; templates supply only CSS.
+ */
+const BOOKING_SCRIPT = String.raw`<script>
+(function(){
+  var el=document.getElementById('bkCfg'); if(!el) return;
+  var cfg=JSON.parse(el.textContent);
+  var form=document.getElementById('bkForm'), grid=form.parentNode;
+  var optsBox=document.getElementById('bkOpts'), daysBox=document.getElementById('bkDays'),
+      slotsBox=document.getElementById('bkSlots'), sum=document.getElementById('bkSum'),
+      err=document.getElementById('bkErr');
+  var sel={opt:'',date:null,time:''};
+  var SLOT=30, LEAD=60; // minutes: slot step, and minimum notice for same-day
+
+  var wd=new Intl.DateTimeFormat(cfg.lang,{weekday:'short'});
+  var full=new Intl.DateTimeFormat(cfg.lang,{weekday:'long',day:'numeric',month:'long'});
+  var mon=new Intl.DateTimeFormat(cfg.lang,{month:'short'});
+
+  // openingHours is Monday-first; JS getDay() is Sunday-first.
+  function rangesFor(d){
+    var line=cfg.hours[(d.getDay()+6)%7]||'';
+    var v=line.split('|')[1]||'';
+    if(!v||v.toLowerCase()===String(cfg.closed).toLowerCase()) return [];
+    return v.split(',').map(function(r){
+      var m=r.match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+      return m?{a:+m[1]*60+ +m[2], b:+m[3]*60+ +m[4]}:null;
+    }).filter(Boolean);
+  }
+  function slotsFor(d){
+    var now=new Date(), today=d.toDateString()===now.toDateString();
+    var min=today?now.getHours()*60+now.getMinutes()+LEAD:-1, out=[];
+    rangesFor(d).forEach(function(r){
+      var end=r.b<=r.a?r.b+1440:r.b; // past-midnight close
+      for(var t=r.a;t<=end-SLOT;t+=SLOT){
+        if(t<=min) continue;
+        var h=Math.floor(t/60)%24;
+        out.push((h<10?'0':'')+h+':'+(t%60<10?'0':'')+(t%60));
+      }
+    });
+    return out;
+  }
+  function pad2(n){return (n<10?'0':'')+n}
+  function iso(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
+
+  function paintSummary(){
+    var rows='';
+    if(sel.opt) rows+='<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>';
+    if(sel.date) rows+='<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>';
+    if(sel.time) rows+='<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>';
+    sum.innerHTML=rows||'<div><dt>'+cfg.pick+'</dt></div>';
+  }
+  function lbl(k){
+    var legends=form.querySelectorAll('.bkstep legend');
+    return k==='date'?legends[1].textContent.replace(/^2/,''):legends[2].textContent.replace(/^3/,'');
+  }
+  function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
+
+  function choose(box,btn){
+    [].forEach.call(box.querySelectorAll('[role=radio]'),function(b){b.setAttribute('aria-checked','false')});
+    btn.setAttribute('aria-checked','true');
+  }
+
+  optsBox.addEventListener('click',function(e){
+    var b=e.target.closest('.chip-opt'); if(!b) return;
+    sel.opt=b.dataset.val; choose(optsBox,b); paintSummary();
+  });
+
+  // next 14 days, closed days and fully-booked-out days disabled
+  var frag=document.createDocumentFragment(), firstOpen=null;
+  for(var i=0;i<14;i++){
+    var d=new Date(); d.setDate(d.getDate()+i); d.setHours(0,0,0,0);
+    var open=slotsFor(d).length>0;
+    var b=document.createElement('button');
+    b.type='button'; b.className='day'; b.setAttribute('role','radio');
+    b.setAttribute('aria-checked','false'); b.disabled=!open; b.dataset.iso=iso(d);
+    b.innerHTML='<small>'+esc(wd.format(d))+'</small><b>'+d.getDate()+'</b><i>'+
+      (open?esc(mon.format(d)):esc(cfg.closed))+'</i>';
+    if(open&&!firstOpen) firstOpen=b;
+    frag.appendChild(b);
+  }
+  daysBox.appendChild(frag);
+
+  function paintSlots(){
+    if(!sel.date){slotsBox.innerHTML='<p class="bkempty">'+cfg.pick+'</p>';return}
+    var list=slotsFor(sel.date);
+    if(!list.length){slotsBox.innerHTML='<p class="bkempty">'+cfg.noSlots+'</p>';return}
+    slotsBox.innerHTML=list.map(function(t){
+      return '<button type="button" class="chip-opt" role="radio" aria-checked="false" data-val="'+t+'">'+t+'</button>';
+    }).join('');
+  }
+  daysBox.addEventListener('click',function(e){
+    var b=e.target.closest('.day'); if(!b||b.disabled) return;
+    var p=b.dataset.iso.split('-');
+    sel.date=new Date(+p[0],+p[1]-1,+p[2]); sel.time='';
+    choose(daysBox,b); paintSlots(); paintSummary();
+  });
+  slotsBox.addEventListener('click',function(e){
+    var b=e.target.closest('.chip-opt'); if(!b) return;
+    sel.time=b.dataset.val; choose(slotsBox,b); paintSummary();
+  });
+
+  paintSlots(); paintSummary();
+
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=document.getElementById('bkName').value.trim(),
+        tel=document.getElementById('bkPhone').value.trim();
+    if(!sel.opt||!sel.date||!sel.time||!name||!tel){
+      err.textContent=cfg.err; err.hidden=false; err.scrollIntoView({block:'center'}); return;
+    }
+    err.hidden=true;
+    // Concept mockup: nothing is submitted anywhere. Saying otherwise would
+    // leave a real customer waiting on an appointment nobody received.
+    var done=document.createElement('div');
+    done.className='bkdone'; done.setAttribute('role','status');
+    done.innerHTML='<div class="tickmark">✓</div><h3>'+cfg.doneTitle+'</h3>'+
+      '<dl class="recap">'+
+        '<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>'+
+        '<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>'+
+        '<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>'+
+        '<div><dt>'+esc(name)+'</dt><dd>'+esc(tel)+'</dd></div>'+
+      '</dl>'+
+      '<p class="note">'+cfg.doneNote+'</p><div class="row">'+
+      (cfg.phone?'<a class="cta" href="tel:'+esc(cfg.phone.replace(/[^\d+]/g,''))+'">'+esc(cfg.phone)+'</a>':'')+
+      '<button type="button" class="bklink" id="bkBack">'+cfg.again+'</button></div>';
+    grid.replaceChildren(done);
+    done.scrollIntoView({block:'center',behavior:'smooth'});
+    document.getElementById('bkBack').addEventListener('click',function(){location.reload()});
+  });
+})();
+</script>`;
 
 /**
  * Booking module (WEB-STANDARD §10). Time slots are generated in the browser
@@ -588,7 +754,8 @@ function renderBooking(
     </aside>
   </div>
   <script type="application/json" id="bkCfg">${jsonForScript(cfg)}</script>
-</div></section>`;
+</div></section>
+${BOOKING_SCRIPT}`;
 }
 
 /** Opening-hours rows from real Places data. Empty string when unknown. */
@@ -631,7 +798,7 @@ export function renderPreview(params: RenderParams): string {
     about: escapeHtml(copy.about),
     ctaLabel: escapeHtml(copy.ctaLabel),
     metaDescription: escapeHtml(copy.metaDescription),
-    servicesHtml: renderServices(templateId, copy),
+    servicesHtml: renderServices(copy),
     ratingBlock: renderRating(lead, strings),
     proofStrip: renderProof(lead, strings),
     proofBand: renderProofBand(lead, strings),
@@ -656,6 +823,9 @@ export function renderPreview(params: RenderParams): string {
     ctaBandSub: strings.ctaBandSub,
     scrollCue: strings.scrollCue,
     reviewsShort: strings.reviewsShort,
+    eyeReviews: strings.eyeReviews,
+    reviewsHeading: strings.reviewsHeading,
+    reviewsUrl: `https://search.google.com/local/reviews?placeid=${encodeURIComponent(lead.placeId)}`,
     eyeServices: strings.eyeServices,
     eyeAbout: strings.eyeAbout,
     eyeVisit: strings.eyeVisit,
@@ -672,8 +842,8 @@ export function renderPreview(params: RenderParams): string {
           : strings.bookTitle
         : copy.ctaLabel,
     ),
-    nicheAccent: profile.accent,
-    nicheAccentDark: profile.accentDark,
+    nicheAccent: accentFor(templateId, lead.category).accent,
+    nicheAccentDark: accentFor(templateId, lead.category).accentDark,
     aboutLead: escapeHtml(splitAbout(copy.about).lead),
     aboutLeadHidden: splitAbout(copy.about).lead === '' ? 'hidden' : '',
     aboutBody: escapeHtml(splitAbout(copy.about).body),
@@ -694,7 +864,7 @@ export function renderPreview(params: RenderParams): string {
     navVisit: strings.navVisit,
     callNow: strings.callNow,
     year: String(new Date().getFullYear()),
-    accent: boldAccentForNiche(lead.category),
+    accent: accentFor(templateId, lead.category).accent,
     heroBackground: heroBackground(templateId, heroImageUrl),
   };
 

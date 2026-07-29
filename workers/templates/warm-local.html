@@ -108,8 +108,11 @@ section{padding:64px 0;scroll-margin-top:72px}
 .stats{padding:0;background:var(--deep);color:#F6EFE6;position:relative;overflow:hidden}
 .stats::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(246,239,230,.09) 1px,transparent 1px);background-size:24px 24px;-webkit-mask-image:linear-gradient(90deg,#000,transparent 62%);mask-image:linear-gradient(90deg,#000,transparent 62%)}
 .stats .wrap{position:relative;padding-top:52px;padding-bottom:52px}
-.band-stars{color:#E8A33D;letter-spacing:6px;font-size:1.05rem;display:block;margin-top:14px}
-.band-score{font-family:'Fraunces',serif;font-size:clamp(3.4rem,13vw,6rem);line-height:.95;letter-spacing:-.035em;margin-top:8px;font-weight:600}
+.band-h{font-size:clamp(1.6rem,5vw,2.3rem);letter-spacing:-.025em;margin-top:12px}
+.revlink{display:inline-flex;align-items:center;gap:7px;margin-top:18px;color:#F6EFE6;font-weight:600;font-size:.92rem;text-decoration:none;border-bottom:1px solid rgba(246,239,230,.35);padding-bottom:3px;min-height:44px}
+@media(hover:hover){.revlink:hover{color:#E8A33D;border-color:#E8A33D}}
+.band-stars{color:#E8A33D;letter-spacing:6px;font-size:1.05rem;display:block;margin-top:22px}
+.band-score{font-family:'Fraunces',serif;font-size:clamp(3.4rem,13vw,6rem);line-height:.95;letter-spacing:-.035em;margin-top:6px;font-weight:600}
 .band-sub{color:#BFAE9B;font-size:1rem;margin-top:10px;max-width:46ch}
 .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-dk);border:1px solid var(--line-dk);border-radius:var(--r);overflow:hidden;margin-top:26px}
 .statgrid>div{background:var(--deep);padding:24px 20px;display:grid;gap:4px}
@@ -293,7 +296,8 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
 </div></section>
 
 <section class="stats" {{statsHidden}}><div class="wrap">
-  <span class="eyebrow on-dark">Google</span>
+  <span class="eyebrow on-dark">{{eyeReviews}}</span>
+  <h2 class="band-h">{{reviewsHeading}}</h2>
   {{proofBand}}
   <div class="statgrid">{{statsHtml}}</div>
 </div></section>
@@ -363,133 +367,6 @@ footer .fs a{display:inline-flex;align-items:center;min-height:44px}
 <div class="brandbar" id="bb"><span>Concept by FlowDev</span><a href="{{calLink}}">Book a call</a><button aria-label="Close" onclick="sessionStorage.setItem('bb','1');document.getElementById('bb').style.display='none'">✕</button></div>
 <script>if(sessionStorage.getItem('bb')){document.getElementById('bb').style.display='none'}</script>
 
-<script>
-(function(){
-  var el=document.getElementById('bkCfg'); if(!el) return;
-  var cfg=JSON.parse(el.textContent);
-  var form=document.getElementById('bkForm'), grid=form.parentNode;
-  var optsBox=document.getElementById('bkOpts'), daysBox=document.getElementById('bkDays'),
-      slotsBox=document.getElementById('bkSlots'), sum=document.getElementById('bkSum'),
-      err=document.getElementById('bkErr');
-  var sel={opt:'',date:null,time:''};
-  var SLOT=30, LEAD=60; // minutes: slot step, and minimum notice for same-day
 
-  var wd=new Intl.DateTimeFormat(cfg.lang,{weekday:'short'});
-  var full=new Intl.DateTimeFormat(cfg.lang,{weekday:'long',day:'numeric',month:'long'});
-  var mon=new Intl.DateTimeFormat(cfg.lang,{month:'short'});
-
-  // openingHours is Monday-first; JS getDay() is Sunday-first.
-  function rangesFor(d){
-    var line=cfg.hours[(d.getDay()+6)%7]||'';
-    var v=line.split('|')[1]||'';
-    if(!v||v.toLowerCase()===String(cfg.closed).toLowerCase()) return [];
-    return v.split(',').map(function(r){
-      var m=r.match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
-      return m?{a:+m[1]*60+ +m[2], b:+m[3]*60+ +m[4]}:null;
-    }).filter(Boolean);
-  }
-  function slotsFor(d){
-    var now=new Date(), today=d.toDateString()===now.toDateString();
-    var min=today?now.getHours()*60+now.getMinutes()+LEAD:-1, out=[];
-    rangesFor(d).forEach(function(r){
-      var end=r.b<=r.a?r.b+1440:r.b; // past-midnight close
-      for(var t=r.a;t<=end-SLOT;t+=SLOT){
-        if(t<=min) continue;
-        var h=Math.floor(t/60)%24;
-        out.push((h<10?'0':'')+h+':'+(t%60<10?'0':'')+(t%60));
-      }
-    });
-    return out;
-  }
-  function pad2(n){return (n<10?'0':'')+n}
-  function iso(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
-
-  function paintSummary(){
-    var rows='';
-    if(sel.opt) rows+='<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>';
-    if(sel.date) rows+='<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>';
-    if(sel.time) rows+='<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>';
-    sum.innerHTML=rows||'<div><dt>'+cfg.pick+'</dt></div>';
-  }
-  function lbl(k){
-    var legends=form.querySelectorAll('.bkstep legend');
-    return k==='date'?legends[1].textContent.replace(/^2/,''):legends[2].textContent.replace(/^3/,'');
-  }
-  function esc(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML}
-
-  function choose(box,btn){
-    [].forEach.call(box.querySelectorAll('[role=radio]'),function(b){b.setAttribute('aria-checked','false')});
-    btn.setAttribute('aria-checked','true');
-  }
-
-  optsBox.addEventListener('click',function(e){
-    var b=e.target.closest('.chip-opt'); if(!b) return;
-    sel.opt=b.dataset.val; choose(optsBox,b); paintSummary();
-  });
-
-  // next 14 days, closed days and fully-booked-out days disabled
-  var frag=document.createDocumentFragment(), firstOpen=null;
-  for(var i=0;i<14;i++){
-    var d=new Date(); d.setDate(d.getDate()+i); d.setHours(0,0,0,0);
-    var open=slotsFor(d).length>0;
-    var b=document.createElement('button');
-    b.type='button'; b.className='day'; b.setAttribute('role','radio');
-    b.setAttribute('aria-checked','false'); b.disabled=!open; b.dataset.iso=iso(d);
-    b.innerHTML='<small>'+esc(wd.format(d))+'</small><b>'+d.getDate()+'</b><i>'+
-      (open?esc(mon.format(d)):esc(cfg.closed))+'</i>';
-    if(open&&!firstOpen) firstOpen=b;
-    frag.appendChild(b);
-  }
-  daysBox.appendChild(frag);
-
-  function paintSlots(){
-    if(!sel.date){slotsBox.innerHTML='<p class="bkempty">'+cfg.pick+'</p>';return}
-    var list=slotsFor(sel.date);
-    if(!list.length){slotsBox.innerHTML='<p class="bkempty">'+cfg.noSlots+'</p>';return}
-    slotsBox.innerHTML=list.map(function(t){
-      return '<button type="button" class="chip-opt" role="radio" aria-checked="false" data-val="'+t+'">'+t+'</button>';
-    }).join('');
-  }
-  daysBox.addEventListener('click',function(e){
-    var b=e.target.closest('.day'); if(!b||b.disabled) return;
-    var p=b.dataset.iso.split('-');
-    sel.date=new Date(+p[0],+p[1]-1,+p[2]); sel.time='';
-    choose(daysBox,b); paintSlots(); paintSummary();
-  });
-  slotsBox.addEventListener('click',function(e){
-    var b=e.target.closest('.chip-opt'); if(!b) return;
-    sel.time=b.dataset.val; choose(slotsBox,b); paintSummary();
-  });
-
-  paintSlots(); paintSummary();
-
-  form.addEventListener('submit',function(e){
-    e.preventDefault();
-    var name=document.getElementById('bkName').value.trim(),
-        tel=document.getElementById('bkPhone').value.trim();
-    if(!sel.opt||!sel.date||!sel.time||!name||!tel){
-      err.textContent=cfg.err; err.hidden=false; err.scrollIntoView({block:'center'}); return;
-    }
-    err.hidden=true;
-    // Concept mockup: nothing is submitted anywhere. Saying otherwise would
-    // leave a real customer waiting on an appointment nobody received.
-    var done=document.createElement('div');
-    done.className='bkdone'; done.setAttribute('role','status');
-    done.innerHTML='<div class="tickmark">✓</div><h3>'+cfg.doneTitle+'</h3>'+
-      '<dl class="recap">'+
-        '<div><dt>'+cfg.optLabel+'</dt><dd>'+esc(sel.opt)+'</dd></div>'+
-        '<div><dt>'+lbl('date')+'</dt><dd>'+esc(full.format(sel.date))+'</dd></div>'+
-        '<div><dt>'+lbl('time')+'</dt><dd>'+esc(sel.time)+'</dd></div>'+
-        '<div><dt>'+esc(name)+'</dt><dd>'+esc(tel)+'</dd></div>'+
-      '</dl>'+
-      '<p class="note">'+cfg.doneNote+'</p><div class="row">'+
-      (cfg.phone?'<a class="cta" href="tel:'+esc(cfg.phone.replace(/[^\d+]/g,''))+'">'+esc(cfg.phone)+'</a>':'')+
-      '<button type="button" class="bklink" id="bkBack">'+cfg.again+'</button></div>';
-    grid.replaceChildren(done);
-    done.scrollIntoView({block:'center',behavior:'smooth'});
-    document.getElementById('bkBack').addEventListener('click',function(){location.reload()});
-  });
-})();
-</script>
 </body>
 </html>
