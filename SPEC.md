@@ -1,11 +1,31 @@
-# Website Market Scrape — Master Specification (v2)
+# Website Market Scrape, Master Specification (v3)
 
 Personal lead generation app for Ninkov FlowDev. Finds European businesses with no website or an outdated one, scores them, generates AI-personalized cold emails and one-page website previews, and manages outreach from a single dashboard.
 
 Owner: Stefan Ninkov (single user, Google sign-in locked to owner email)
 Repo: Website-Market-Scrape
 
-Companion docs: PLAN.md (build order), DESIGN.md (UI + preview templates), CLAUDE.md (working rules), PROGRESS.md (living log).
+Companion docs, in precedence order for the areas they own:
+
+| Doc | Owns | Wins over |
+|---|---|---|
+| **AGENTS.md** | The agent layer: qualifier, researcher, outreach, preview agents, tools, budgets, safety rails | this file, for agent behaviour |
+| **PREVIEW-SYSTEM.md** | How a `/p/{slug}` page is composed, styled and filled (v2 composition engine) | this file and DESIGN.md Part 2 |
+| **WEB-STANDARD.md** | Craft rules for every website that ships under FlowDev | DESIGN.md, for websites |
+| **DESIGN.md** | Internal app UI | authoritative for the app |
+| PLAN.md | Build order | |
+| CLAUDE.md | Working rules for Claude Code | |
+| PROGRESS.md | Living log | |
+
+**v3 in one paragraph.** v2 shipped and works: sweeps, analyzer, AI emails, Gmail
+outreach, preview generator, pipeline, PWA. v3 adds two things on top without
+removing any of it. First, an agent layer that judges leads instead of only
+listing them, researches the ones worth an email, decides the outreach angle,
+handles replies, and generates previews only when they are warranted (AGENTS.md).
+Second, a preview composition engine that replaces the four fixed templates with
+art directions, a section library, real imagery and blocking quality gates
+(PREVIEW-SYSTEM.md). Sections 1 to 13 below describe the deterministic system and
+remain accurate. Sections 14 to 16 describe what v3 changes about them.
 
 Brand name used in all client-facing surfaces (previews, branding bar, OG marks, email signature): **FlowDev**. A separate FlowDev portfolio website is the final deliverable (PLAN.md Phase 6), built only after the app is complete.
 
@@ -24,10 +44,10 @@ Brand name used in all client-facing surfaces (previews, branding bar, OG marks,
 │  - Firestore (all data), Auth, Storage (preview HTML,     │
 │    OG images, niche image sets)                            │
 │  - Cloud Functions (lightweight only):                     │
-│      • px — tracking pixel, logs open events               │
-│      • gmailPushHandler — reply detection                  │
-│      • enqueueJob — writes job doc                         │
-│      • servePreview — Hosting rewrite /p/{slug} →          │
+│      • px: tracking pixel, logs open events               │
+│      • gmailPushHandler: reply detect                  │
+│      • enqueueJob: writes job doc                         │
+│      • servePreview: rewrite /p/{slug} to          │
 │        streams HTML from Storage                           │
 └──────────────┬───────────────────────────────────────────┘
                │ Firestore as job queue (jobs collection)
@@ -305,3 +325,111 @@ GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
 PUBSUB_TOPIC=gmail-replies
 ```
+
+
+---
+
+## 14. v3 additions to the data model
+
+Additive only. Nothing in §4 is removed or renamed.
+
+### `leads/{placeId}` new fields
+
+```ts
+qualification: Qualification | null;   // AGENTS.md §4
+research: Research | null;             // AGENTS.md §5
+agent: {
+  lastRunAt: TimestampLike | null;
+  lastRunId: string | null;
+  locked: boolean;                     // true after a reply classified `interested`
+  lockReason: string | null;
+};
+preview: {
+  // existing fields unchanged
+  artDirection: ArtDirectionId | null; // replaces templateId going forward
+  compositionSpec: CompositionSpec | null;
+  imageLicences: Array<{ source: string; url: string; licence: string; attribution: string }>;
+  gateResults: { passed: string[]; failed: string[]; warned: string[] };
+};
+```
+
+`templateId` stays on the doc for previews generated under v1 so old slugs keep
+resolving. New previews write `artDirection` and leave `templateId` null.
+
+### New collections
+
+- `agentRuns/{runId}` and `agentRuns/{runId}/steps/{n}`, full schema in AGENTS.md §8.1
+- `suppression/{emailHash}`, permanent, checked inside `sendEmail`
+
+### New config docs
+
+- `config/agents`, AGENTS.md §8.1
+- `config/previewArtDirection`, the weighted niche map from PREVIEW-SYSTEM.md §3.1
+
+### Job types
+
+`JobType` gains `qualify`, `research`, `agent_outreach`, `classify_reply`.
+`generate_preview` keeps its name and gains `agentic?: boolean` on the payload,
+so the deterministic render path stays available as a fallback.
+
+### Events
+
+`EventType` gains `qualified`, `discarded`, `agent_run`, `reply_classified`.
+
+---
+
+## 15. v3 changes to existing sections
+
+**§5 Sweep worker.** Unchanged field mask. Opening hours are fetched with a live
+Details call at preview generation time rather than warehoused, and Places photos
+are not used at all. See PREVIEW-SYSTEM.md §5.1 for why: Google Maps Platform
+terms prohibit caching Places content beyond place IDs, and every displayed photo
+would need author plus Google Maps attribution. The existing CLAUDE.md rule
+against Places photos in previews stands.
+
+**§6 Analyzer.** Unchanged, and it stays the deterministic first pass. Its
+`score` measures how bad the site is. The qualifier's `fitScore` measures how
+good a prospect the business is. Both are stored, both are shown, and the Leads
+page sorts on `fitScore` when it exists and falls back to `score` when it does
+not.
+
+**§7 AI email.** The writing prompt is unchanged. The outreach agent wraps it:
+it chooses the angle and supplies the research context, then the existing
+generator writes the email. **Nothing is ever sent automatically.** Approval is
+required on every outbound message without exception, and `sendEmail` remains a
+user-authenticated callable so no worker or scheduled task can reach it.
+
+**§8 Preview generator.** Superseded by PREVIEW-SYSTEM.md. The contracts that
+stay: single self-contained HTML, `previews/{slug}.html` plus OG PNG, slug and
+view count stable across regeneration, always-English dismissible branding bar,
+concept disclaimer, `noindex`.
+
+**§11 Compliance.** Add the suppression list. An unsubscribe is permanent, keyed
+on a hash of the email address, checked inside `sendEmail` and again by the
+outreach agent. An `interested` reply locks the lead against all automation.
+
+---
+
+## 16. What is actually built (as of this revision)
+
+Verified from PROGRESS.md and the repo, so a fresh session does not redo work:
+
+**Done and verified:** Phases 0 to 5 except the items below. Monorepo, rules,
+shared types, app shell, sweeps, leads, analyzer with PSI and scoring, weekly
+cron, AI email drafts with the retry and budget discipline, px open tracking,
+send and reply code paths, follow-ups, pipeline kanban, bulk actions, four
+preview templates, preview copy, preview worker with OG images, servePreview,
+bulk previews, CSV export, stats, PWA manifest.
+
+**Open, needs Stefan or live credentials:**
+- Firebase project init and `.firebaserc` / `app/.env`
+- Places API key, PageSpeed key, Anthropic key
+- Gmail OAuth client, `gmail-replies` Pub/Sub topic, then live-verify OAuth,
+  send, and reply detection (all three are code complete)
+- Hetzner VPS provisioning per README
+- Niche image sets, which PREVIEW-SYSTEM.md §5 now replaces with an API-driven
+  pipeline, so this item is closed rather than done manually
+
+**Known deviations already accepted:** OG images rendered by Playwright
+screenshot rather than satori, and hand-written per-template CSS rather than a
+Tailwind build. Both are fine and both go away with the composition engine.

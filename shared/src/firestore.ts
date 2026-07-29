@@ -41,7 +41,13 @@ export const COLLECTIONS = {
   jobs: 'jobs',
   events: 'events',
   config: 'config',
+  // v3 agent layer (AGENTS.md §8.1)
+  agentRuns: 'agentRuns',
+  suppression: 'suppression',
 } as const;
+
+/** Steps live under agentRuns/{runId}/steps (AGENTS.md §8.1). */
+export const AGENT_STEPS_SUBCOLLECTION = 'steps';
 
 export const CONFIG_DOCS = {
   apiBudget: 'apiBudget',
@@ -49,6 +55,7 @@ export const CONFIG_DOCS = {
   niches: 'niches',
   gmail: 'gmail',
   identity: 'identity',
+  agents: 'agents',
 } as const;
 
 export const leadPath = (placeId: string): string => `${COLLECTIONS.leads}/${placeId}`;
@@ -57,6 +64,11 @@ export const jobPath = (jobId: string): string => `${COLLECTIONS.jobs}/${jobId}`
 export const eventPath = (eventId: string): string => `${COLLECTIONS.events}/${eventId}`;
 export const configPath = (doc: keyof typeof CONFIG_DOCS): string =>
   `${COLLECTIONS.config}/${CONFIG_DOCS[doc]}`;
+export const agentRunPath = (runId: string): string => `${COLLECTIONS.agentRuns}/${runId}`;
+export const agentStepsPath = (runId: string): string =>
+  `${agentRunPath(runId)}/${AGENT_STEPS_SUBCOLLECTION}`;
+export const suppressionPath = (emailHash: string): string =>
+  `${COLLECTIONS.suppression}/${emailHash}`;
 
 // ---------------------------------------------------------------------------
 // Validated parsing

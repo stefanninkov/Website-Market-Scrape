@@ -38,9 +38,28 @@ export const leadStageSchema = z.enum([
 export const analysisStatusSchema = z.enum(['pending', 'done', 'failed', 'skipped']);
 export const emailSourceSchema = z.enum(['places', 'site_scrape', 'manual']);
 export const previewStatusSchema = z.enum(['none', 'generating', 'ready', 'failed']);
-export const jobTypeSchema = z.enum(['sweep', 'analyze', 'generate_email', 'generate_preview']);
+export const jobTypeSchema = z.enum([
+  'sweep',
+  'analyze',
+  'generate_email',
+  'generate_preview',
+  'qualify',
+  'research',
+  'agent_outreach',
+  'classify_reply',
+]);
 export const jobStatusSchema = z.enum(['queued', 'running', 'done', 'failed', 'blocked_budget']);
-export const eventTypeSchema = z.enum(['open', 'reply', 'sent', 'bounce', 'preview_view']);
+export const eventTypeSchema = z.enum([
+  'open',
+  'reply',
+  'sent',
+  'bounce',
+  'preview_view',
+  'qualified',
+  'discarded',
+  'agent_run',
+  'reply_classified',
+]);
 export const templateIdSchema = z.enum([
   'minimal-light',
   'bold-dark',
@@ -165,6 +184,7 @@ export const jobPayloadSchema = z.object({
   placeId: z.string().optional(),
   templateId: templateIdSchema.optional(),
   steering: z.string().optional(),
+  agentic: z.boolean().optional(),
 });
 
 export const jobSchema = z.object({
@@ -193,10 +213,18 @@ export const budgetCounterSchema = z.object({
   spentUsd: z.number().min(0),
 });
 
+export const dailyCounterSchema = z.object({
+  key: z.string(),
+  spentUsd: z.number().min(0),
+});
+
 export const apiBudgetSchema = z.object({
   places: budgetCounterSchema,
   anthropic: budgetCounterSchema,
   resetAt: timestampSchema,
+  // Absent on budget docs written before v3.
+  agent: budgetCounterSchema.optional(),
+  agentDay: dailyCounterSchema.optional(),
 });
 
 export const toneGuideSchema = z.object({ text: z.string() });
@@ -227,4 +255,170 @@ export const gmailConfigSchema = z.object({
 export const emailDraftOutputSchema = z.object({
   subject: z.string().min(1),
   body: z.string().min(1),
+});
+
+// ---------------------------------------------------------------------------
+// Agent layer (AGENTS.md). These schemas are the enforcement point for the
+// rules CLAUDE.md says must live in code rather than in a prompt.
+// ---------------------------------------------------------------------------
+
+export const agentIdSchema = z.enum(['qualifier', 'researcher', 'outreach', 'preview']);
+export const agentRunStatusSchema = z.enum([
+  'done',
+  'capped',
+  'failed',
+  'blocked_budget',
+  'aborted',
+]);
+export const verdictSchema = z.enum(['qualified', 'discard', 'insufficient_data']);
+export const siteVerdictSchema = z.enum(['none', 'broken', 'dated', 'adequate', 'good']);
+export const sizeProxySchema = z.enum(['micro', 'small', 'medium', 'unknown']);
+
+/**
+ * AGENTS.md §4: "A claim with no source is a validation failure, not a
+ * warning." Both fields are non-empty after trimming, so whitespace does not
+ * satisfy the rule.
+ */
+export const evidenceSchema = z.object({
+  claim: z.string().trim().min(1, 'evidence.claim must not be empty'),
+  source: z.string().trim().min(1, 'every claim needs a source (url, screenshot path, or measured value)'),
+});
+
+export const qualificationSignalsSchema = z.object({
+  alive: z.boolean(),
+  reachable: z.boolean(),
+  siteVerdict: siteVerdictSchema,
+  sizeProxy: sizeProxySchema,
+  isChain: z.boolean(),
+});
+
+export const qualificationSchema = z
+  .object({
+    verdict: verdictSchema,
+    fitScore: z.number().min(0).max(100),
+    confidence: z.number().min(0).max(1),
+    rationale: z.string().trim().min(1),
+    signals: qualificationSignalsSchema,
+    disqualifiers: z.array(z.string().trim().min(1)),
+    evidence: z.array(evidenceSchema).min(1, 'at least one piece of evidence is required'),
+  })
+  .superRefine((q, ctx) => {
+    // "disqualifiers: empty when qualified" (AGENTS.md §4).
+    if (q.verdict === 'qualified' && q.disqualifiers.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['disqualifiers'],
+        message: 'disqualifiers must be empty when verdict is qualified',
+      });
+    }
+    if (q.verdict === 'discard' && q.disqualifiers.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['disqualifiers'],
+        message: 'a discard must name at least one disqualifier',
+      });
+    }
+  });
+
+export const painSeveritySchema = z.enum(['high', 'medium', 'low']);
+
+export const painPointSchema = z.object({
+  claim: z.string().trim().min(1),
+  // AGENTS.md §5 / WEB-STANDARD H11: no evidence, no claim.
+  evidence: z.string().trim().min(1, 'painPoints[].evidence is required and non-empty'),
+  severity: painSeveritySchema,
+});
+
+export const researchSchema = z.object({
+  ownerName: z.string().nullable(),
+  ownerSource: z.string().nullable(),
+  summary: z.string().trim().min(1),
+  services: z.array(z.string()),
+  differentiators: z.array(z.string()),
+  painPoints: z.array(painPointSchema),
+  reviewThemes: z.object({
+    praised: z.array(z.string()),
+    complained: z.array(z.string()),
+  }),
+  socials: z.array(
+    z.object({
+      platform: z.string(),
+      url: z.string(),
+      lastActiveAt: z.string().nullable(),
+    }),
+  ),
+  openingHours: z.record(z.string()).nullable(),
+  competitorNote: z.string().nullable(),
+}).superRefine((r, ctx) => {
+  // "Owner name is nullable and stays null unless found" — a name without a
+  // source is a guess, and a wrong guess kills the email (AGENTS.md §5).
+  if (r.ownerName !== null && (r.ownerSource === null || r.ownerSource.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['ownerSource'],
+      message: 'ownerName requires ownerSource',
+    });
+  }
+});
+
+export const leadAgentStateSchema = z.object({
+  lastRunAt: timestampSchema.nullable(),
+  lastRunId: z.string().nullable(),
+  locked: z.boolean(),
+  lockReason: z.string().nullable(),
+});
+
+export const agentRunSchema = z.object({
+  agentId: agentIdSchema,
+  leadId: z.string().min(1),
+  status: agentRunStatusSchema,
+  confidence: z.number().min(0).max(1),
+  rationale: z.string(),
+  steps: z.number().int().min(0),
+  tokensIn: z.number().int().min(0),
+  tokensOut: z.number().int().min(0),
+  costUsd: z.number().min(0),
+  startedAt: timestampSchema,
+  finishedAt: timestampSchema.nullable(),
+  error: z.string().nullable(),
+  outputRef: z.string().nullable(),
+});
+
+export const agentStepSchema = z.object({
+  role: z.enum(['model', 'tool']),
+  toolName: z.string().nullable(),
+  inputSummary: z.string(),
+  outputSummary: z.string(),
+  at: timestampSchema,
+  tokens: z.number().int().min(0),
+});
+
+export const agentCapsSchema = z.object({
+  maxSteps: z.number().int().positive(),
+  maxTokens: z.number().int().positive(),
+  maxSeconds: z.number().int().positive(),
+});
+
+export const agentsConfigSchema = z.object({
+  enabled: z.boolean(),
+  qualifier: z.boolean(),
+  researcher: z.boolean(),
+  outreach: z.boolean(),
+  preview: z.boolean(),
+  autoQualifyOnAnalyze: z.boolean(),
+  highValueNiches: z.array(z.string()),
+  monthlyAgentBudgetUsd: z.number().min(0),
+  perRun: z.object({
+    qualifier: agentCapsSchema,
+    researcher: agentCapsSchema,
+    outreach: agentCapsSchema,
+    preview: agentCapsSchema,
+  }),
+});
+
+export const suppressionSchema = z.object({
+  email: z.string().min(1),
+  reason: z.string(),
+  at: timestampSchema,
+  leadId: z.string().nullable(),
 });

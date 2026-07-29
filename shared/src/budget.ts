@@ -5,7 +5,7 @@
  * go through these helpers (CLAUDE.md cost discipline).
  */
 
-import type { ApiBudget, BudgetCounter, MeteredApi } from './types.js';
+import type { ApiBudget, BudgetCounter, DailyCounter, MeteredApi } from './types.js';
 
 /** Workers refuse jobs at 90% of a limit → job status 'blocked_budget'. */
 export const BUDGET_BLOCK_THRESHOLD = 0.9;
@@ -73,11 +73,90 @@ export function nextResetDate(from: Date = new Date()): Date {
 export function resetCounters(budget: ApiBudget): {
   places: BudgetCounter;
   anthropic: BudgetCounter;
+  agent: BudgetCounter;
   resetAtDate: Date;
 } {
   return {
     places: { ...budget.places, spentUsd: 0 },
     anthropic: { ...budget.anthropic, spentUsd: 0 },
+    agent: { ...agentCounter(budget), spentUsd: 0 },
     resetAtDate: nextResetDate(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Agent budget (AGENTS.md §8.4). Three levels, all enforced here:
+//   per run   — the loop's own caps, see workers/src/agent/loop.ts
+//   per day   — soft warning in the UI, never blocks
+//   per month — hard stop, jobs go blocked_budget
+//
+// The monthly limit lives in config/agents.monthlyAgentBudgetUsd and is passed
+// in, so there is exactly one source of truth for it. config/apiBudget only
+// carries the *spend*.
+// ---------------------------------------------------------------------------
+
+/** UTC day key, YYYY-MM-DD. Day boundaries follow the monthly reset (UTC). */
+export function dayKey(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
+/**
+ * There is no separate daily limit in AGENTS.md, so the daily allowance is
+ * derived from the monthly one. 30 rather than the real month length keeps the
+ * number stable across months; it only drives a warning, never a block.
+ */
+export const AGENT_DAILY_ALLOWANCE_DIVISOR = 30;
+export const AGENT_DAY_WARN_THRESHOLD = 0.8;
+
+/** Agent counters are absent on budget docs written before v3. */
+export function agentCounter(budget: ApiBudget): BudgetCounter {
+  return budget.agent ?? { monthlyLimitUsd: 0, spentUsd: 0 };
+}
+
+export function agentDayCounter(budget: ApiBudget, now: Date = new Date()): DailyCounter {
+  const today = dayKey(now);
+  const d = budget.agentDay;
+  // A stale key means the stored total belongs to a previous day.
+  return d && d.key === today ? d : { key: today, spentUsd: 0 };
+}
+
+/**
+ * Hard stop. Unlike the Places/Anthropic guards this blocks at 100% rather than
+ * 90%: the agent layer is the discretionary spend, and a run that is refused
+ * costs nothing but a `blocked_budget` job Stefan can re-run after raising the
+ * cap.
+ */
+export function isAgentBudgetBlocked(budget: ApiBudget, monthlyLimitUsd: number): boolean {
+  if (monthlyLimitUsd <= 0) return false;
+  return agentCounter(budget).spentUsd >= monthlyLimitUsd;
+}
+
+/** Soft, UI-only. True at 80% of the derived daily allowance. */
+export function isAgentDayWarning(
+  budget: ApiBudget,
+  monthlyLimitUsd: number,
+  now: Date = new Date(),
+): boolean {
+  if (monthlyLimitUsd <= 0) return false;
+  const allowance = monthlyLimitUsd / AGENT_DAILY_ALLOWANCE_DIVISOR;
+  return agentDayCounter(budget, now).spentUsd >= allowance * AGENT_DAY_WARN_THRESHOLD;
+}
+
+/**
+ * Adds agent spend to the monthly and daily agent counters *and* to the
+ * anthropic counter. Agent tokens are literally the Anthropic bill, so the
+ * existing guard has to see them; the agent counters exist on top of that to
+ * attribute the spend and drive cost-per-qualified-lead.
+ */
+export function applyAgentSpend(
+  budget: ApiBudget,
+  usd: number,
+  now: Date = new Date(),
+): ApiBudget {
+  const day = agentDayCounter(budget, now);
+  return {
+    ...applySpend(budget, 'anthropic', usd),
+    agent: { ...agentCounter(budget), spentUsd: agentCounter(budget).spentUsd + usd },
+    agentDay: { key: day.key, spentUsd: day.spentUsd + usd },
   };
 }
