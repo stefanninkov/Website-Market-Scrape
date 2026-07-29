@@ -239,3 +239,37 @@ Entry template:
 - Firestore `where('type','in',...)` + `where('status','==','queued')` may need a composite index on the real project — add to `firestore.indexes.json` when first seen.
 - app bundle is ~508KB minified (firebase SDK); consider code-splitting later, irrelevant for a single user.
 - Next: Phase 1 (Places client + sweep-worker + enqueueJob + Sweeps/Leads pages).
+
+---
+
+## 2026-07-29 — warm-local preview: real visual substance
+
+**Done:**
+- Rebuilt `workers/templates/warm-local.html` after Stefan's "it's still so blank and it doesn't look like a website at all". Screenshotted the actual output first: the page was four thin sections on one flat cream background with no imagery, no colour rhythm and large voids. The problem was structural, not spacing.
+- Page is now nav → full-bleed dark hero → accent ticker → services → dark stats band → about → visit → accent CTA band → footer. The scroll alternates cream / deep / accent instead of running one colour top to bottom.
+- Hero visual: with a curated niche image it's a photo panel; without one it's a built composition (arch, lettermark, floating rating chip, region tag). Previously the visual was omitted entirely when there was no image, which is what made the hero read as half-empty.
+- `iconFor()` / `svgIcon()` in `render.ts`: line-art icons matched against the AI-written service title, 12 keyword groups covering Serbian and English, neutral fallback. Replaces the identical `✦` that sat on every row.
+- `renderStats()` — rating, review count, days open, service count. Every value comes from Places or the AI copy; no invented numbers.
+- `renderMarquee()` emits four copies of the sequence. Each row translates -100% of its own width, so two copies left a bare gap at the right edge on viewports wider than the content (1326px of content on a 1440px screen).
+- `splitAbout()` — the About pull quote is the first sentence of the AI about copy. It was `{{subheadline}}`, which printed the same sentence in the hero and in About on the same page.
+- Removed the doubled `section` + `.wrap` vertical padding on the stats and CTA bands (176px and 172px respectively) — the source of the remaining voids. Desktop page height dropped 4311 → 3924 with *more* content.
+- Contact card: `.maplink` pushed to the bottom so the shorter card fills its row instead of ending in a void.
+- Tap targets: brand, phone link and footer links raised to ≥44px.
+
+**Verified:**
+- Typecheck clean. 0 horizontal overflow at 320 / 375 / 414 / 768 / 1024 / 1440 / 1920.
+- Regenerated the live preview end to end (job → worker → Storage → servePreview). Deployed HTML confirmed to contain the new markup with no unfilled `{{slots}}`.
+
+**Decisions:**
+- WEB-STANDARD §8.1 ("never ship an empty placeholder") was previously read as "ship nothing when there's no image". That produced the blank page. Correct reading: ship something *designed*. §8.1 should be reworded to say so.
+- Section eyebrows get their own strings (`eyeServices` / `eyeAbout` / `eyeVisit`) rather than reusing the heading — an eyebrow that repeats the h2 under it is filler.
+
+**Deviations from SPEC:** none.
+
+**New dependencies:** none.
+
+**Known issues / next up:**
+- No stock-image host is reachable from the sandbox proxy, so the hero composition is the fallback path in practice. Curated niche imagery in Storage `niche-images/{niche}/` is still the real fix — the code path already exists and switches the hero to `has-visual` the moment an image is there.
+- Only `warm-local` has been rebuilt. `minimal-light`, `bold-dark` and `corporate-clean` are still the old thin versions.
+- The AI copy prompt is unchanged and still writes generically ("verujemo da svaka kosa ima svoju priču"). WEB-STANDARD §11 wants concrete over poetic; the prompt doesn't enforce it yet.
+- `PLAYWRIGHT_CHROMIUM_PATH` must be set for the preview worker's OG-image step wherever the bundled Playwright build doesn't match the installed browser.
