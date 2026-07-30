@@ -315,6 +315,7 @@ describe('safety rails as code', () => {
       shooter: null,
       bucket: null,
       search: null,
+      websiteType: 'real' as const,
     });
     for (const t of tools) {
       expect(['none', 'storage']).toContain(t.writes);
@@ -331,9 +332,45 @@ describe('safety rails as code', () => {
       shooter: null,
       bucket: null,
       search: null,
+      websiteType: 'real' as const,
     });
     const banned = /send|email|delete|remove|write_config|set_config/i;
     for (const t of tools) expect(t.name).not.toMatch(banned);
+  });
+});
+
+describe('cost shape', () => {
+  const deps = (websiteType: 'real' | 'none') => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    db: {} as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    places: {} as any,
+    lang: 'en' as const,
+    shooter: { async capture() { return Buffer.alloc(0); } },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    bucket: {} as any,
+    search: null,
+    websiteType,
+  });
+
+  it('offers no site-inspection tools to a lead with no website', () => {
+    const names = qualifierTools(deps('none')).map((t) => t.name);
+    expect(names).toContain('read_lead');
+    expect(names).not.toContain('fetch_page');
+    expect(names).not.toContain('screenshot_page');
+    expect(names).not.toContain('run_analyzer');
+  });
+
+  it('offers them to a lead with a real website', () => {
+    const names = qualifierTools(deps('real')).map((t) => t.name);
+    expect(names).toContain('fetch_page');
+    expect(names).toContain('screenshot_page');
+    expect(names).toContain('run_analyzer');
+  });
+
+  it('caps screenshots at 2 per run, the most expensive input', () => {
+    const shot = qualifierTools(deps('real')).find((t) => t.name === 'screenshot_page');
+    expect(shot?.cost.maxCallsPerRun).toBe(2);
   });
 });
 

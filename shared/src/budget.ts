@@ -18,11 +18,37 @@ export const PLACES_DETAILS_USD = 0.017;
 export const ANTHROPIC_INPUT_USD_PER_MTOK = 3;
 export const ANTHROPIC_OUTPUT_USD_PER_MTOK = 15;
 
+/**
+ * Prompt-cache multipliers. Writing to the cache costs 1.25x a normal input
+ * token; reading from it costs 0.1x. In a multi-turn agent loop the system
+ * prompt and tool definitions are resent on every turn, so caching them is the
+ * single largest lever on run cost.
+ */
+export const ANTHROPIC_CACHE_WRITE_MULTIPLIER = 1.25;
+export const ANTHROPIC_CACHE_READ_MULTIPLIER = 0.1;
+
+export interface AnthropicUsageTokens {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+}
+
 /** Estimate cost of an Anthropic call from usage reported in the response. */
 export function anthropicCostUsd(inputTokens: number, outputTokens: number): number {
   return (
     (inputTokens / 1_000_000) * ANTHROPIC_INPUT_USD_PER_MTOK +
     (outputTokens / 1_000_000) * ANTHROPIC_OUTPUT_USD_PER_MTOK
+  );
+}
+
+/** Cost including cache reads and writes, which are billed at different rates. */
+export function anthropicCostUsdWithCache(u: AnthropicUsageTokens): number {
+  const perMTok = ANTHROPIC_INPUT_USD_PER_MTOK / 1_000_000;
+  return (
+    anthropicCostUsd(u.inputTokens, u.outputTokens) +
+    (u.cacheCreationTokens ?? 0) * perMTok * ANTHROPIC_CACHE_WRITE_MULTIPLIER +
+    (u.cacheReadTokens ?? 0) * perMTok * ANTHROPIC_CACHE_READ_MULTIPLIER
   );
 }
 

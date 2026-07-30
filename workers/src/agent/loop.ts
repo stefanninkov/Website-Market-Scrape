@@ -14,7 +14,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_MODEL } from '../lib/anthropic.js';
 import { z } from 'zod';
-import { anthropicCostUsd, type AgentCaps, type AgentRunResult } from '@wms/shared';
+import { anthropicCostUsdWithCache, type AgentCaps, type AgentRunResult } from '@wms/shared';
 import type { ToolContext, ToolRegistry } from './tools/registry.js';
 import { toolResultText, truncateForLog } from './tools/registry.js';
 
@@ -70,6 +70,8 @@ interface Totals {
   steps: number;
   tokensIn: number;
   tokensOut: number;
+  cacheWrite: number;
+  cacheRead: number;
 }
 
 function result<T>(
@@ -87,7 +89,12 @@ function result<T>(
     steps: totals.steps,
     tokensIn: totals.tokensIn,
     tokensOut: totals.tokensOut,
-    costUsd: anthropicCostUsd(totals.tokensIn, totals.tokensOut),
+    costUsd: anthropicCostUsdWithCache({
+      inputTokens: totals.tokensIn,
+      outputTokens: totals.tokensOut,
+      cacheCreationTokens: totals.cacheWrite,
+      cacheReadTokens: totals.cacheRead,
+    }),
   };
 }
 
@@ -117,8 +124,16 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
     now = () => Date.now(),
   } = params;
 
+  // cache_control on the final tool caches the whole tools array with it.
+  const allTools = [...tools.specs(), ...serverTools];
+  const cacheableTools: Anthropic.ToolUnion[] = allTools.map((t, i) =>
+    i === allTools.length - 1
+      ? ({ ...t, cache_control: { type: 'ephemeral' } } as Anthropic.ToolUnion)
+      : t,
+  );
+
   const deadline = now() + caps.maxSeconds * 1000;
-  const totals: Totals = { steps: 0, tokensIn: 0, tokensOut: 0 };
+  const totals: Totals = { steps: 0, tokensIn: 0, tokensOut: 0, cacheWrite: 0, cacheRead: 0 };
   const messages: Anthropic.MessageParam[] = [{ role: 'user', content: userMessage }];
 
   // One retry on schema failure, with the errors appended (AGENTS.md §2.1).
@@ -141,7 +156,7 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
     if (totals.steps >= caps.maxSteps) {
       return result('capped', totals, `Stopped at the ${caps.maxSteps}-step cap.`);
     }
-    if (totals.tokensIn + totals.tokensOut >= caps.maxTokens) {
+    if (totals.tokensIn + totals.tokensOut + totals.cacheWrite + totals.cacheRead >= caps.maxTokens) {
       return result('capped', totals, `Stopped at the ${caps.maxTokens}-token cap.`);
     }
     if (now() >= deadline) {
@@ -153,8 +168,11 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
       response = await client.messages.create({
         model: ANTHROPIC_MODEL,
         max_tokens: MAX_TOKENS_PER_TURN,
-        system,
-        tools: [...tools.specs(), ...serverTools],
+        // The system prompt and the tool definitions are byte-identical on
+        // every turn and together are most of the resent input. Caching them
+        // makes turns 2..n read at 0.1x instead of full price.
+        system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+        tools: cacheableTools,
         messages,
       });
     } catch (err) {
@@ -164,6 +182,8 @@ export async function runAgent<T>(params: RunAgentParams<T>): Promise<AgentRunRe
     totals.steps += 1;
     totals.tokensIn += response.usage.input_tokens;
     totals.tokensOut += response.usage.output_tokens;
+    totals.cacheWrite += response.usage.cache_creation_input_tokens ?? 0;
+    totals.cacheRead += response.usage.cache_read_input_tokens ?? 0;
 
     const toolUses = response.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',

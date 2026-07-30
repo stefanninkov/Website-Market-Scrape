@@ -17,6 +17,7 @@ import {
   jobPath,
   leadPath,
   type Lead,
+  type WebsiteType,
 } from '@wms/shared';
 import { fetchRobots } from '../../lib/robots.js';
 import type { PlacesClient } from '../../lib/places.js';
@@ -31,6 +32,12 @@ export const AGENT_USER_AGENT =
 
 const FETCH_TIMEOUT_MS = 10_000;
 const FETCH_MAX_BYTES = 2 * 1024 * 1024;
+/**
+ * Extracted page text is resent with every later turn, so this is a per-run
+ * multiplier, not a one-off. 2500 characters is enough to judge whether a page
+ * says anything real; 6000 was ~900 extra tokens paid on every subsequent turn.
+ */
+const FETCH_TEXT_CHARS = 2500;
 
 // ---------------------------------------------------------------------------
 // read_lead
@@ -124,7 +131,7 @@ export function makeFetchPageTool(): AgentTool<z.infer<typeof fetchPageInput>> {
       additionalProperties: false,
     },
     writes: 'none',
-    cost: { usdPerCall: 0, maxCallsPerRun: 8 },
+    cost: { usdPerCall: 0, maxCallsPerRun: 4 },
     async run(input): Promise<ToolOutcome> {
       const checked = await checkUrl(input.url);
       if (!checked.ok) return { ok: false, text: checked.reason };
@@ -153,7 +160,7 @@ export function makeFetchPageTool(): AgentTool<z.infer<typeof fetchPageInput>> {
       }
       const html = new TextDecoder('utf-8').decode(buf);
       const meta = metaOf(html);
-      const text = extractText(html).slice(0, 6000);
+      const text = extractText(html).slice(0, FETCH_TEXT_CHARS);
       return {
         ok: true,
         text: JSON.stringify({ url: url.toString(), status: res.status, meta, text }, null, 1),
@@ -182,7 +189,7 @@ export function makeScreenshotTool(
   return {
     name: 'screenshot_page',
     description:
-      'Screenshot a public page at 375px (phone) or 1440px (desktop) and return the image so you can judge it visually. Use this before deciding a site is bad: the analyzer score is mechanical and a page that scores badly can still look and work fine. Honours robots.txt and refuses private addresses.',
+      'Screenshot a public page and return the image so you can judge it visually. Use 375 (phone) — that is how these customers browse, and one phone screenshot is enough to tell a working site from a broken one. Only use 1440 if the phone view is genuinely ambiguous. Each screenshot is the most expensive thing you can do, so take one and decide. Honours robots.txt and refuses private addresses.',
     schema: screenshotInput,
     jsonSchema: {
       type: 'object',
@@ -194,7 +201,8 @@ export function makeScreenshotTool(
       additionalProperties: false,
     },
     writes: 'storage',
-    cost: { usdPerCall: 0, maxCallsPerRun: 4 },
+    // Images dominate input tokens and every one is resent on later turns.
+    cost: { usdPerCall: 0, maxCallsPerRun: 2 },
     async run(input, ctx): Promise<ToolOutcome> {
       const checked = await checkUrl(input.url);
       if (!checked.ok) return { ok: false, text: checked.reason };
@@ -241,7 +249,7 @@ export function makePlacesDetailsTool(
   return {
     name: 'places_details',
     description:
-      'Fetch fresh Google Places details for this business: name, address, phone, website, rating, review count and opening hours. Costs money, so call it only if the lead record is missing something you need.',
+      'Fetch fresh Google Places details from Google. WARNING: read_lead already gives you name, address, phone, website, rating, review count and opening hours for this business — this tool returns the same fields and costs real money per call. Only call it if read_lead showed one of those fields as null and you specifically need it. Do not call it to double-check data you already have.',
     schema: placesDetailsInput,
     jsonSchema: { type: 'object', properties: {}, additionalProperties: false },
     writes: 'none',
@@ -435,22 +443,38 @@ export interface ToolDeps {
   shooter: Screenshotter | null;
   bucket: Bucket | null;
   search: WebSearchProvider | null;
+  /**
+   * The lead's websiteType. Leads with no real site get a smaller toolset:
+   * there is nothing to fetch, screenshot or analyze, so offering those tools
+   * only buys failed calls and the tokens to describe them.
+   */
+  websiteType: WebsiteType;
+}
+
+/** True when the lead has a real site worth looking at. */
+function hasRealSite(t: WebsiteType): boolean {
+  return t === 'real' || t === 'unknown';
 }
 
 /** The tools A1 is given (AGENTS.md §3, Phase 7 row set). */
 export function qualifierTools(deps: ToolDeps): AnyAgentTool[] {
-  const tools: AnyAgentTool[] = [
-    makeReadLeadTool(),
-    makeFetchPageTool(),
-    makePlacesDetailsTool(deps.places, deps.lang),
-    makeRunAnalyzerTool(),
-  ];
+  const tools: AnyAgentTool[] = [makeReadLeadTool(), makePlacesDetailsTool(deps.places, deps.lang)];
+
   // Only when a client-side provider is wired. With server-side search the
   // model gets the tool from the API and this local one must not also exist,
   // or the same capability appears twice under one name.
   if (deps.search) tools.push(makeWebSearchTool(deps.search));
-  if (deps.shooter && deps.bucket) {
-    tools.push(makeScreenshotTool(deps.shooter, deps.bucket));
+
+  // Site-inspection tools only exist when there is a site. For a lead with no
+  // website, signal 3 ("is the site actually bad") is already answered — there
+  // isn't one — and the analyzer deliberately skips it. Offering these tools
+  // anyway costs their descriptions on every turn plus a round trip per failed
+  // call, and invites the model to draw conclusions from a fetch error.
+  if (hasRealSite(deps.websiteType)) {
+    tools.push(makeFetchPageTool(), makeRunAnalyzerTool());
+    if (deps.shooter && deps.bucket) {
+      tools.push(makeScreenshotTool(deps.shooter, deps.bucket));
+    }
   }
   return tools;
 }

@@ -88,6 +88,7 @@ export function makeQualifyHandler(deps: QualifyDeps): JobHandler {
         shooter: deps.shooter,
         bucket: deps.bucket,
         search: deps.search,
+        websiteType: lead.websiteType,
       }),
       // Server-side search unless a client-side provider is configured.
       serverSearch: deps.search === null,
